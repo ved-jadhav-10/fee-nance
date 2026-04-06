@@ -30,6 +30,7 @@ export async function GET() {
     const groups = await Group.find({
       "members.userId": toObjectId(userId),
     })
+      .populate("members.userId", "name email")
       .sort({ createdAt: -1 })
       .lean();
 

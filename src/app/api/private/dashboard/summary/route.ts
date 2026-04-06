@@ -1,0 +1,121 @@
+import { requireUserId } from "@/lib/api-auth";
+import { connectToDatabase } from "@/lib/db";
+import { parseDate, jsonError } from "@/lib/http";
+import { toObjectId } from "@/lib/object-id";
+import { Category } from "@/models/Category";
+import { Group } from "@/models/Group";
+import { Transaction } from "@/models/Transaction";
+
+export async function GET(request: Request) {
+  try {
+    const userId = await requireUserId();
+    await connectToDatabase();
+
+    const userObjectId = toObjectId(userId);
+    const { searchParams } = new URL(request.url);
+
+    const defaultStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const defaultEnd = new Date();
+
+    const startDate = parseDate(searchParams.get("startDate"), defaultStart) as Date;
+    const endDate = parseDate(searchParams.get("endDate"), defaultEnd) as Date;
+
+    const transactionMatch = {
+      userId: userObjectId,
+      transactionDate: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    };
+
+    const [summaryByType, categoryBreakdownRaw, monthlyTrend, groupCount] = await Promise.all([
+      Transaction.aggregate([
+        { $match: transactionMatch },
+        {
+          $group: {
+            _id: "$type",
+            total: { $sum: "$amount" },
+          },
+        },
+      ]),
+      Transaction.aggregate([
+        { $match: { ...transactionMatch, type: "expense" } },
+        {
+          $group: {
+            _id: "$categoryId",
+            total: { $sum: "$amount" },
+          },
+        },
+        { $sort: { total: -1 } },
+        { $limit: 6 },
+      ]),
+      Transaction.aggregate([
+        { $match: transactionMatch },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$transactionDate" },
+              month: { $month: "$transactionDate" },
+            },
+            income: {
+              $sum: {
+                $cond: [{ $eq: ["$type", "income"] }, "$amount", 0],
+              },
+            },
+            expense: {
+              $sum: {
+                $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0],
+              },
+            },
+          },
+        },
+        { $sort: { "_id.year": 1, "_id.month": 1 } },
+      ]),
+      Group.countDocuments({ "members.userId": userObjectId }),
+    ]);
+
+    const totalIncome = summaryByType.find((entry) => entry._id === "income")?.total ?? 0;
+    const totalExpense = summaryByType.find((entry) => entry._id === "expense")?.total ?? 0;
+
+    const categoryIds = categoryBreakdownRaw
+      .map((entry) => entry._id)
+      .filter((id): id is string => Boolean(id));
+
+    const categories = await Category.find({ _id: { $in: categoryIds } })
+      .select("_id name")
+      .lean();
+
+    const categoryMap = new Map(categories.map((category) => [category._id.toString(), category.name]));
+
+    return Response.json({
+      dateRange: {
+        startDate,
+        endDate,
+      },
+      totals: {
+        income: totalIncome,
+        expense: totalExpense,
+        balance: totalIncome - totalExpense,
+      },
+      groupCount,
+      categoryBreakdown: categoryBreakdownRaw.map((entry) => ({
+        categoryId: entry._id,
+        categoryName: categoryMap.get(entry._id?.toString?.() ?? "") ?? "Uncategorized",
+        total: entry.total,
+      })),
+      monthlyTrend: monthlyTrend.map((entry) => ({
+        year: entry._id.year,
+        month: entry._id.month,
+        income: entry.income,
+        expense: entry.expense,
+      })),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return jsonError("Unauthorized", 401);
+    }
+
+    console.error(error);
+    return jsonError("Failed to load dashboard summary", 500);
+  }
+}
