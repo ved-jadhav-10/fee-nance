@@ -1,0 +1,99 @@
+{
+  "generatedAt": "2026-04-06T18:16:31.950Z",
+  "summaries": {
+    "groupMembershipRows": 5,
+    "aboveAverageSpenders": 1,
+    "categoryHavingRows": 2,
+    "settlementHavingRows": 2
+  },
+  "reports": {
+    "joinLikeGroupMembership": [
+      {
+        "groupId": "69d3f77ecec8daf1ccf37536",
+        "groupName": "Flatmates 302",
+        "inviteCode": "U26UEELM",
+        "memberId": "69d3f766765467475293316b",
+        "memberName": "Riya Demo",
+        "memberEmail": "riya@feenance.demo",
+        "role": "owner",
+        "joinedAt": "2025-12-09T04:30:00.000Z"
+      },
+      {
+        "groupId": "69d3f77ecec8daf1ccf37536",
+        "groupName": "Flatmates 302",
+        "inviteCode": "U26UEELM",
+        "memberId": "69d3f766765467475293316a",
+        "memberName": "Alex Demo",
+        "memberEmail": "alex@feenance.demo",
+        "role": "member",
+        "joinedAt": "2025-12-10T04:30:00.000Z"
+      },
+      {
+        "groupId": "69d3f77ecec8daf1ccf37535",
+        "groupName": "Weekend Crew",
+        "inviteCode": "2SYT67JT",
+        "memberId": "69d3f766765467475293316a",
+        "memberName": "Alex Demo",
+        "memberEmail": "alex@feenance.demo",
+        "role": "owner",
+        "joinedAt": "2026-01-05T04:30:00.000Z"
+      },
+      {
+        "groupId": "69d3f77ecec8daf1ccf37535",
+        "groupName": "Weekend Crew",
+        "inviteCode": "2SYT67JT",
+        "memberId": "69d3f766765467475293316b",
+        "memberName": "Riya Demo",
+        "memberEmail": "riya@feenance.demo",
+        "role": "member",
+        "joinedAt": "2026-01-06T04:30:00.000Z"
+      },
+      {
+        "groupId": "69d3f77ecec8daf1ccf37535",
+        "groupName": "Weekend Crew",
+        "inviteCode": "2SYT67JT",
+        "memberId": "69d3f766765467475293316c",
+        "memberName": "Kabir Demo",
+        "memberEmail": "kabir@feenance.demo",
+        "role": "member",
+        "joinedAt": "2026-02-02T04:30:00.000Z"
+      }
+    ],
+    "subqueryLikeAboveAverageSpenders": [
+      {
+        "userId": "69d3f766765467475293316a",
+        "userName": "Alex Demo",
+        "totalExpense": 33600,
+        "averageExpense": 11574.75
+      }
+    ],
+    "groupByHavingCategoryExpenses": [
+      {
+        "userId": "69d3f766765467475293316a",
+        "userName": "Alex Demo",
+        "categoryId": "69d3e3647654674752933133",
+        "categoryName": "Rent",
+        "totalExpense": 28000
+      },
+      {
+        "userId": "69d3e35a44d8c7633a043b5b",
+        "userName": "Veerbhadra Mahant",
+        "categoryId": "69d3e3647654674752933131",
+        "categoryName": "Food",
+        "totalExpense": 8000
+      }
+    ],
+    "groupByHavingSettlements": [
+      {
+        "groupId": "69d3f77ecec8daf1ccf37535",
+        "groupName": "Weekend Crew",
+        "settlementTotal": 900
+      },
+      {
+        "groupId": "69d3f77ecec8daf1ccf37536",
+        "groupName": "Flatmates 302",
+        "settlementTotal": 700
+      }
+    ]
+  }
+}

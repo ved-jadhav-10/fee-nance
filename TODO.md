@@ -91,24 +91,24 @@
 - [x] Responsive behavior for mobile and desktop
 
 ## Phase 8 - Demo Data and QA
-- [ ] Seed script for realistic demo data
-- [ ] Add demo accounts and sample transactions
-- [ ] Manual QA checklist for all MVP flows
+- [x] Seed script for realistic demo data
+- [x] Add demo accounts and sample transactions
+- [x] Manual QA checklist for all MVP flows
 
 ## Phase 9 - DBMS Deliverables (MongoDB-Compatible Strategy)
-- [ ] Build equivalent scripted operations for advanced logic in backend services
-- [ ] Create sql-scripts folder with documentation-only SQL files (DDL, DML, joins, subqueries, GROUP BY, HAVING)
-- [ ] Prepare documented query set mapping to DDL/DML and advanced query concepts
-- [ ] Produce reproducible outputs for joins/subquery-like reporting via aggregation pipelines
-- [ ] Document trigger/procedure/function/cursor equivalents as implemented logic flows
-- [ ] Prepare viva explanation notes for MongoDB vs relational concept mapping
+- [x] Build equivalent scripted operations for advanced logic in backend services
+- [x] Create sql-scripts folder with documentation-only SQL files (DDL, DML, joins, subqueries, GROUP BY, HAVING)
+- [x] Prepare documented query set mapping to DDL/DML and advanced query concepts
+- [x] Produce reproducible outputs for joins/subquery-like reporting via aggregation pipelines
+- [x] Document trigger/procedure/function/cursor equivalents as implemented logic flows
+- [x] Prepare viva explanation notes for MongoDB vs relational concept mapping
 
 ## Phase 10 - Final Documentation and Submission
-- [ ] Complete README with setup, env, run instructions
-- [ ] Add architecture diagram and module flow
-- [ ] Add ER diagram and normalization notes
-- [ ] Add private API module reference
-- [ ] Add demo script with sample accounts and scenarios
+- [x] Complete README with setup, env, run instructions
+- [x] Add architecture diagram and module flow
+- [x] Add ER diagram and normalization notes
+- [x] Add private API module reference
+- [x] Add demo script with sample accounts and scenarios
 
 ## Suggested Build Sequence
 1. Foundation setup

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "format": "eslint . --fix",
-    "seed": "tsx --env-file-if-exists=.env.local --env-file=.env src/scripts/seed.ts"
+    "seed": "tsx --env-file-if-exists=.env.local --env-file=.env src/scripts/seed.ts",
+    "dbms:report": "tsx --env-file-if-exists=.env.local --env-file=.env src/scripts/dbms-report.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

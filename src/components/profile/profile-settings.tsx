@@ -103,14 +103,14 @@ export function ProfileSettings() {
 
   if (isLoading) {
     return (
-      <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+      <section className="panel p-5">
         <p className="text-sm text-[var(--color-muted)]">Loading profile settings...</p>
       </section>
     );
   }
 
   return (
-    <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+    <section className="panel p-5">
       <div className="mb-4">
         <h2 className="text-lg text-[var(--color-text)]">Profile and Preferences</h2>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
@@ -188,7 +188,7 @@ export function ProfileSettings() {
           <button
             type="submit"
             disabled={isSaving}
-            className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+            className="btn-primary px-4 py-2 text-sm font-medium disabled:opacity-60"
           >
             {isSaving ? "Saving..." : "Save profile"}
           </button>

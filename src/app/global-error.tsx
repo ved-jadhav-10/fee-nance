@@ -20,7 +20,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body className="min-h-screen bg-[var(--color-bg)] px-5 py-12 text-[var(--color-text)] md:px-10">
-        <main className="mx-auto w-full max-w-2xl rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-8 text-center shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+        <main className="mx-auto w-full max-w-2xl rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-8 text-center shadow-[0_0_24px_var(--color-accent-glow)]">
           <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">Fee-Nance</p>
           <h1 className="mt-3 text-3xl leading-tight">Critical Error</h1>
           <p className="mt-3 text-sm text-[var(--color-muted)]">

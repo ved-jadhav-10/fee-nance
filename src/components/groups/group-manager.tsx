@@ -66,7 +66,7 @@ export function GroupManager() {
   return (
     <div className="space-y-6">
       <section className="grid gap-4 xl:grid-cols-2">
-        <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+        <article className="panel p-5">
           <h2 className="text-lg">Create Group</h2>
           <form className="mt-4 flex gap-3" onSubmit={handleCreateGroup}>
             <input
@@ -78,14 +78,14 @@ export function GroupManager() {
             />
             <button
               type="submit"
-              className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)]"
+              className="btn-primary px-4 py-2 text-sm font-medium"
             >
               Create
             </button>
           </form>
         </article>
 
-        <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+        <article className="panel p-5">
           <h2 className="text-lg">Join Group</h2>
           <form className="mt-4 flex gap-3" onSubmit={handleJoinGroup}>
             <input
@@ -97,7 +97,7 @@ export function GroupManager() {
             />
             <button
               type="submit"
-              className="rounded-md border border-[var(--color-border)] px-4 py-2 text-sm font-semibold hover:border-[var(--color-accent)]"
+              className="btn-ghost px-4 py-2 text-sm font-medium"
             >
               Join
             </button>
@@ -105,13 +105,13 @@ export function GroupManager() {
         </article>
       </section>
 
-      <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+      <section className="panel p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-lg">Your Groups</h2>
           <button
             type="button"
             onClick={reload}
-            className="rounded-md border border-[var(--color-border)] px-3 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-muted)] hover:border-[var(--color-accent)]"
+            className="btn-ghost px-3 py-2 text-xs uppercase tracking-[0.16em]"
           >
             Refresh
           </button>
@@ -128,7 +128,7 @@ export function GroupManager() {
                   </div>
                   <Link
                     href={`/groups/${group._id}`}
-                    className="rounded-md bg-[var(--color-accent)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-contrast)]"
+                    className="btn-primary px-3 py-2 text-xs font-medium uppercase tracking-[0.16em]"
                   >
                     Open
                   </Link>

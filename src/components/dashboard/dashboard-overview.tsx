@@ -78,7 +78,7 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+      <section className="panel p-5">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">
@@ -102,18 +102,14 @@ export function DashboardOverview() {
               className="rounded-md border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm"
             />
           </div>
-          <button
-            type="button"
-            onClick={reload}
-            className="rounded-md border border-[var(--color-border)] px-4 py-2 text-sm hover:border-[var(--color-accent)]"
-          >
+          <button type="button" onClick={reload} className="btn-ghost px-4 py-2 text-sm">
             Refresh
           </button>
           <button
             type="button"
             onClick={handleGenerateRecurring}
             disabled={isGenerating}
-            className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] disabled:opacity-60"
+            className="btn-primary px-4 py-2 text-sm font-medium disabled:opacity-60"
           >
             {isGenerating ? "Running..." : "Run Recurring"}
           </button>
@@ -121,26 +117,26 @@ export function DashboardOverview() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
-        <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
+        <article className="panel p-4">
           <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Income</p>
           <p className="mt-2 text-xl text-[var(--color-accent)]">{formatCurrency(data.totals.income)}</p>
         </article>
-        <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
+        <article className="panel p-4">
           <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Expense</p>
           <p className="mt-2 text-xl text-[var(--color-accent)]">{formatCurrency(data.totals.expense)}</p>
         </article>
-        <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
+        <article className="panel p-4">
           <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Balance</p>
           <p className="mt-2 text-xl text-[var(--color-accent)]">{formatCurrency(data.totals.balance)}</p>
         </article>
-        <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
+        <article className="panel p-4">
           <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Groups</p>
           <p className="mt-2 text-xl text-[var(--color-accent)]">{data.groupCount}</p>
         </article>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+        <article className="panel p-5">
           <h2 className="text-lg">Category Expense Breakdown</h2>
           <div className="mt-4 space-y-3">
             {data.categoryBreakdown.length ? (
@@ -167,7 +163,7 @@ export function DashboardOverview() {
           </div>
         </article>
 
-        <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+        <article className="panel p-5">
           <h2 className="text-lg">Monthly Trend</h2>
           <div className="mt-4 space-y-4">
             {data.monthlyTrend.length ? (
@@ -187,10 +183,7 @@ export function DashboardOverview() {
                         />
                       </div>
                       <div className="h-2 rounded-full bg-[rgba(255,255,255,0.08)]">
-                        <div
-                          className="h-2 rounded-full bg-[rgba(217,117,70,0.88)]"
-                          style={{ width: `${expenseWidth}%` }}
-                        />
+                        <div className="h-2 rounded-full bg-[var(--color-warning)]" style={{ width: `${expenseWidth}%` }} />
                       </div>
                     </div>
                     <div className="flex justify-between text-xs text-[var(--color-muted)]">
