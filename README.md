@@ -54,10 +54,16 @@ npm install
 2. Create local environment file
 - Copy .env.example to .env.local
 - Fill required values
+- Follow docs/secrets-policy.md for secret handling rules
 
 3. Run development server
 
 npm run dev
+
+## Formatting
+Run:
+
+npm run format
 
 ## Environment Variables
 - MONGODB_URI

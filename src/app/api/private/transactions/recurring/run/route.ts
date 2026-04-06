@@ -2,6 +2,7 @@ import { requireUserId } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Transaction } from "@/models/Transaction";
 
 function getNextDate(date: Date, frequency: "monthly" | "yearly") {
@@ -69,7 +70,7 @@ export async function POST() {
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to generate recurring transactions", 500);
   }
 }

@@ -2,6 +2,7 @@ import { hash } from "bcryptjs";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/db";
 import { jsonError } from "@/lib/http";
+import { logger } from "@/lib/logger";
 import { User } from "@/models/User";
 
 const registerSchema = z.object({
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
       return jsonError(error.issues[0]?.message ?? "Invalid input", 422);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to register user", 500);
   }
 }

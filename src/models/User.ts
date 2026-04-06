@@ -28,6 +28,18 @@ const userSchema = new Schema(
       required: false,
       index: true,
     },
+    preferences: {
+      currency: {
+        type: String,
+        enum: ["INR"],
+        default: "INR",
+      },
+      dashboardDefaultRange: {
+        type: String,
+        enum: ["thisMonth", "last30Days", "thisYear"],
+        default: "thisMonth",
+      },
+    },
   },
   {
     timestamps: true,

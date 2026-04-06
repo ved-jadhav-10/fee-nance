@@ -2,6 +2,7 @@ import { requireUserId } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
 import { parseDate, jsonError } from "@/lib/http";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Category } from "@/models/Category";
 import { Group } from "@/models/Group";
 import { Transaction } from "@/models/Transaction";
@@ -115,7 +116,7 @@ export async function GET(request: Request) {
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to load dashboard summary", 500);
   }
 }

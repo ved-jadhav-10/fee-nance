@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
+import { ProfileSettings } from "@/components/profile/profile-settings";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -40,6 +41,7 @@ export default async function DashboardPage() {
           </div>
         </header>
 
+        <ProfileSettings />
         <DashboardOverview />
       </div>
     </main>

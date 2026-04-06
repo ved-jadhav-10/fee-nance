@@ -348,6 +348,31 @@ export function GroupDetail({ groupId }: GroupDetailProps) {
           </form>
 
           <div className="mt-6 space-y-2">
+            <h4 className="text-sm uppercase tracking-[0.16em] text-[var(--color-muted)]">
+              Member Net Amounts
+            </h4>
+            {balancesQuery.data?.balances?.length ? (
+              balancesQuery.data.balances.map((entry) => {
+                const memberName = memberNameMap.get(entry.memberId) ?? entry.memberId;
+                const descriptor =
+                  entry.netAmount > 0
+                    ? "gets"
+                    : entry.netAmount < 0
+                      ? "owes"
+                      : "settled";
+
+                return (
+                  <p key={entry.memberId} className="text-sm">
+                    {memberName}: {descriptor} {formatCurrency(Math.abs(entry.netAmount))}
+                  </p>
+                );
+              })
+            ) : (
+              <p className="text-sm text-[var(--color-muted)]">No net balances yet.</p>
+            )}
+          </div>
+
+          <div className="mt-6 space-y-2">
             <h4 className="text-sm uppercase tracking-[0.16em] text-[var(--color-muted)]">Pairwise Balances</h4>
             {balancesQuery.data?.pairwiseSettlements?.length ? (
               balancesQuery.data.pairwiseSettlements.map((item, index) => (

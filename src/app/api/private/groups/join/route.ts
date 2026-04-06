@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { requireUserId } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
+import { getGroupMemberIds } from "@/lib/group-members";
 import { jsonError } from "@/lib/http";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Group } from "@/models/Group";
 
 const joinGroupSchema = z.object({
@@ -18,29 +20,43 @@ export async function POST(request: Request) {
 
     const group = await Group.findOne({
       inviteCode: payload.inviteCode.toUpperCase(),
-    });
+    }).lean();
 
     if (!group) {
       return jsonError("Invalid invite code", 404);
     }
 
-    const alreadyMember = group.members.some(
-      (member: { userId: { toString(): string } }) => member.userId.toString() === userId,
-    );
+    const memberIds = getGroupMemberIds(group);
+    const userObjectId = toObjectId(userId);
+    const alreadyMember = memberIds.includes(userId);
 
     if (alreadyMember) {
       return Response.json({ group });
     }
 
-    group.members.push({
-      userId: toObjectId(userId),
-      role: "member",
-      joinedAt: new Date(),
-    });
+    await Group.updateOne(
+      {
+        _id: group._id,
+        "members.userId": { $ne: userObjectId },
+      },
+      {
+        $push: {
+          members: {
+            userId: userObjectId,
+            role: "member",
+            joinedAt: new Date(),
+          },
+        },
+      },
+    );
 
-    await group.save();
+    const updatedGroup = await Group.findById(group._id).lean();
 
-    return Response.json({ group });
+    if (!updatedGroup) {
+      return jsonError("Group not found", 404);
+    }
+
+    return Response.json({ group: updatedGroup });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       return jsonError("Unauthorized", 401);
@@ -50,7 +66,7 @@ export async function POST(request: Request) {
       return jsonError(error.issues[0]?.message ?? "Invalid invite code", 422);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to join group", 500);
   }
 }

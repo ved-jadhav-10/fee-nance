@@ -1,7 +1,9 @@
 import { requireUserId } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
+import { ensureDefaultCategories } from "@/lib/default-categories";
 import { parseDate, jsonError } from "@/lib/http";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Budget } from "@/models/Budget";
 import { Category } from "@/models/Category";
 import { Transaction } from "@/models/Transaction";
@@ -10,6 +12,7 @@ export async function GET(request: Request) {
   try {
     const userId = await requireUserId();
     await connectToDatabase();
+    await ensureDefaultCategories();
 
     const userObjectId = toObjectId(userId);
     const { searchParams } = new URL(request.url);
@@ -71,7 +74,7 @@ export async function GET(request: Request) {
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to load finance workspace", 500);
   }
 }

@@ -1,8 +1,10 @@
 import { requireUserId } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
+import { getGroupMemberIds } from "@/lib/group-members";
 import { jsonError } from "@/lib/http";
 import { roundCurrency } from "@/lib/money";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Group } from "@/models/Group";
 import { GroupExpense } from "@/models/GroupExpense";
 import { Settlement } from "@/models/Settlement";
@@ -65,9 +67,7 @@ export async function GET(
       return jsonError("Group not found", 404);
     }
 
-    const memberIds = group.members.map((member: { userId: { toString(): string } }) =>
-      member.userId.toString(),
-    );
+    const memberIds = getGroupMemberIds(group);
 
     if (!memberIds.includes(userId)) {
       return jsonError("Forbidden", 403);
@@ -111,7 +111,11 @@ export async function GET(
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    if (error instanceof Error && error.message === "Invalid identifier") {
+      return jsonError("Invalid identifier", 422);
+    }
+
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to calculate balances", 500);
   }
 }

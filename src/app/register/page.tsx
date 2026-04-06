@@ -1,7 +1,16 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { RegisterForm } from "@/components/auth/register-form";
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const session = await getServerSession(authOptions);
+
+  if (session?.user?.id) {
+    redirect("/dashboard");
+  }
+
   return (
     <main className="min-h-screen bg-[var(--color-bg)] px-5 py-10 text-[var(--color-text)]">
       <div className="mx-auto flex w-full max-w-md flex-col gap-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-8 shadow-[0_20px_80px_rgba(0,0,0,0.45)]">

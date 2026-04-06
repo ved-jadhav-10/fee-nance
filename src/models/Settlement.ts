@@ -47,6 +47,12 @@ const settlementSchema = new Schema(
       required: true,
       index: true,
     },
+    idempotencyKey: {
+      type: String,
+      required: false,
+      trim: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -54,6 +60,13 @@ const settlementSchema = new Schema(
 );
 
 settlementSchema.index({ groupId: 1, settledAt: -1 });
+settlementSchema.index(
+  { groupId: 1, createdBy: 1, idempotencyKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { idempotencyKey: { $exists: true, $type: "string" } },
+  },
+);
 
 export type SettlementDocument = InferSchemaType<typeof settlementSchema>;
 

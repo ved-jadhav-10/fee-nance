@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { requireUserId } from "@/lib/api-auth";
+import { resolveAccessibleCategoryId } from "@/lib/category-access";
 import { connectToDatabase } from "@/lib/db";
 import { parseDate, jsonError } from "@/lib/http";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Budget } from "@/models/Budget";
 
 const budgetSchema = z.object({
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to load budgets", 500);
   }
 }
@@ -67,13 +69,15 @@ export async function POST(request: Request) {
 
     await connectToDatabase();
 
+    const categoryId = await resolveAccessibleCategoryId(payload.categoryId, userId);
+
     const budget = await Budget.create({
       userId: toObjectId(userId),
       name: payload.name,
       amount: payload.amount,
       currency: "INR",
       cycle: payload.cycle,
-      categoryId: payload.categoryId ? toObjectId(payload.categoryId) : undefined,
+      categoryId,
       periodStart,
       periodEnd,
     });
@@ -88,7 +92,7 @@ export async function POST(request: Request) {
       return jsonError(error.issues[0]?.message ?? "Invalid budget input", 422);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to create budget", 500);
   }
 }

@@ -3,7 +3,9 @@ import { requireUserId } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
 import { ensureDefaultCategories } from "@/lib/default-categories";
 import { jsonError } from "@/lib/http";
+import { isMongoDuplicateKeyError } from "@/lib/mongo-errors";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Category } from "@/models/Category";
 
 const createCategorySchema = z.object({
@@ -31,7 +33,7 @@ export async function GET() {
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to load categories", 500);
   }
 }
@@ -62,7 +64,11 @@ export async function POST(request: Request) {
       return jsonError(error.issues[0]?.message ?? "Invalid category input", 422);
     }
 
-    console.error(error);
+    if (isMongoDuplicateKeyError(error)) {
+      return jsonError("Category with this name and type already exists", 409);
+    }
+
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to create category", 500);
   }
 }

@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { requireUserId } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
+import { getGroupMemberIds } from "@/lib/group-members";
 import { computeShares, validatePayers } from "@/lib/split";
 import { jsonError } from "@/lib/http";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Group } from "@/models/Group";
 import { GroupExpense } from "@/models/GroupExpense";
 
@@ -30,8 +32,26 @@ const createExpenseSchema = z.object({
   incurredAt: z.string().datetime().optional(),
 });
 
+const expenseQuerySchema = z.object({
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  createdBy: z.string().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  sortBy: z.enum(["incurredAt", "amount", "createdAt"]).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+});
+
+function getOptionalParam(value: string | null) {
+  if (value === null || value.trim() === "") {
+    return undefined;
+  }
+
+  return value;
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ groupId: string }> },
 ) {
   try {
@@ -46,27 +66,91 @@ export async function GET(
       return jsonError("Group not found", 404);
     }
 
-    const memberIds = group.members.map((member: { userId: { toString(): string } }) =>
-      member.userId.toString(),
-    );
+    const memberIds = getGroupMemberIds(group);
 
     if (!memberIds.includes(userId)) {
       return jsonError("Forbidden", 403);
     }
 
-    const expenses = await GroupExpense.find({
-      groupId: toObjectId(groupId),
-    })
-      .sort({ incurredAt: -1 })
-      .lean();
+    const { searchParams } = new URL(request.url);
+    const queryParams = expenseQuerySchema.parse({
+      startDate: getOptionalParam(searchParams.get("startDate")),
+      endDate: getOptionalParam(searchParams.get("endDate")),
+      createdBy: getOptionalParam(searchParams.get("createdBy")),
+      page: getOptionalParam(searchParams.get("page")),
+      limit: getOptionalParam(searchParams.get("limit")),
+      sortBy: getOptionalParam(searchParams.get("sortBy")),
+      sortOrder: getOptionalParam(searchParams.get("sortOrder")),
+    });
 
-    return Response.json({ expenses });
+    if (queryParams.createdBy && !memberIds.includes(queryParams.createdBy)) {
+      return jsonError("createdBy filter must be a group member", 422);
+    }
+
+    const shouldPaginate = queryParams.page !== undefined || queryParams.limit !== undefined;
+    const page = queryParams.page ?? 1;
+    const limit = queryParams.limit ?? 20;
+    const sortField = queryParams.sortBy ?? "incurredAt";
+    const sortDirection = queryParams.sortOrder === "asc" ? 1 : -1;
+
+    const historyQuery: {
+      groupId: ReturnType<typeof toObjectId>;
+      incurredAt?: { $gte?: Date; $lte?: Date };
+      createdBy?: ReturnType<typeof toObjectId>;
+    } = {
+      groupId: toObjectId(groupId),
+    };
+
+    if (queryParams.startDate || queryParams.endDate) {
+      historyQuery.incurredAt = {};
+      if (queryParams.startDate) {
+        historyQuery.incurredAt.$gte = new Date(queryParams.startDate);
+      }
+      if (queryParams.endDate) {
+        historyQuery.incurredAt.$lte = new Date(queryParams.endDate);
+      }
+    }
+
+    if (queryParams.createdBy) {
+      historyQuery.createdBy = toObjectId(queryParams.createdBy);
+    }
+
+    const totalCountPromise = GroupExpense.countDocuments(historyQuery);
+    const findQuery = GroupExpense.find(historyQuery).sort({ [sortField]: sortDirection });
+
+    if (shouldPaginate) {
+      findQuery.skip((page - 1) * limit).limit(limit);
+    }
+
+    const [totalCount, expenses] = await Promise.all([totalCountPromise, findQuery.lean()]);
+
+    return Response.json({
+      expenses,
+      pagination: shouldPaginate
+        ? {
+            page,
+            limit,
+            totalCount,
+            totalPages: Math.max(1, Math.ceil(totalCount / limit)),
+            hasNextPage: page * limit < totalCount,
+            hasPrevPage: page > 1,
+          }
+        : null,
+    });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    if (error instanceof z.ZodError) {
+      return jsonError(error.issues[0]?.message ?? "Invalid group expense query", 422);
+    }
+
+    if (error instanceof Error && error.message === "Invalid identifier") {
+      return jsonError("Invalid identifier", 422);
+    }
+
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to load group expenses", 500);
   }
 }
@@ -88,9 +172,7 @@ export async function POST(
       return jsonError("Group not found", 404);
     }
 
-    const memberIds = group.members.map((member: { userId: { toString(): string } }) =>
-      member.userId.toString(),
-    );
+    const memberIds = getGroupMemberIds(group);
 
     if (!memberIds.includes(userId)) {
       return jsonError("Forbidden", 403);
@@ -141,11 +223,15 @@ export async function POST(
       return jsonError(error.issues[0]?.message ?? "Invalid group expense input", 422);
     }
 
+    if (error instanceof Error && error.message === "Invalid identifier") {
+      return jsonError("Invalid identifier", 422);
+    }
+
     if (error instanceof Error) {
       return jsonError(error.message, 422);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to create group expense", 500);
   }
 }

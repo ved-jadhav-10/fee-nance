@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { requireUserId } from "@/lib/api-auth";
+import { resolveAccessibleCategoryId } from "@/lib/category-access";
 import { connectToDatabase } from "@/lib/db";
-import { parseDate, jsonError } from "@/lib/http";
+import { jsonError } from "@/lib/http";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Transaction } from "@/models/Transaction";
 
 const transactionSchema = z.object({
@@ -21,15 +23,48 @@ const transactionSchema = z.object({
     .optional(),
 });
 
+const transactionQuerySchema = z.object({
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  type: z.enum(["income", "expense"]).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  sortBy: z.enum(["transactionDate", "amount", "createdAt", "title"]).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+});
+
+function getOptionalParam(value: string | null) {
+  if (value === null || value.trim() === "") {
+    return undefined;
+  }
+
+  return value;
+}
+
 export async function GET(request: Request) {
   try {
     const userId = await requireUserId();
     await connectToDatabase();
 
     const { searchParams } = new URL(request.url);
-    const startDate = parseDate(searchParams.get("startDate"));
-    const endDate = parseDate(searchParams.get("endDate"));
-    const type = searchParams.get("type");
+    const queryParams = transactionQuerySchema.parse({
+      startDate: getOptionalParam(searchParams.get("startDate")),
+      endDate: getOptionalParam(searchParams.get("endDate")),
+      type: getOptionalParam(searchParams.get("type")),
+      page: getOptionalParam(searchParams.get("page")),
+      limit: getOptionalParam(searchParams.get("limit")),
+      sortBy: getOptionalParam(searchParams.get("sortBy")),
+      sortOrder: getOptionalParam(searchParams.get("sortOrder")),
+    });
+
+    const startDate = queryParams.startDate ? new Date(queryParams.startDate) : undefined;
+    const endDate = queryParams.endDate ? new Date(queryParams.endDate) : undefined;
+    const type = queryParams.type;
+    const shouldPaginate = queryParams.page !== undefined || queryParams.limit !== undefined;
+    const page = queryParams.page ?? 1;
+    const limit = queryParams.limit ?? 20;
+    const sortField = queryParams.sortBy ?? "transactionDate";
+    const sortDirection = queryParams.sortOrder === "asc" ? 1 : -1;
 
     const query: {
       userId: ReturnType<typeof toObjectId>;
@@ -53,19 +88,36 @@ export async function GET(request: Request) {
       query.type = type;
     }
 
-    const transactions = await Transaction.find(query).sort({ transactionDate: -1 }).lean();
+    const totalCountPromise = Transaction.countDocuments(query);
 
-    const summary = transactions.reduce(
-      (acc, txn) => {
-        if (txn.type === "income") {
-          acc.totalIncome += txn.amount;
-        } else {
-          acc.totalExpense += txn.amount;
-        }
-        return acc;
+    const findQuery = Transaction.find(query).sort({ [sortField]: sortDirection });
+
+    if (shouldPaginate) {
+      findQuery.skip((page - 1) * limit).limit(limit);
+    }
+
+    const transactionsPromise = findQuery.lean();
+
+    const summaryByTypePromise = Transaction.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: "$type",
+          total: { $sum: "$amount" },
+        },
       },
-      { totalIncome: 0, totalExpense: 0 },
-    );
+    ]);
+
+    const [totalCount, transactions, summaryByType] = await Promise.all([
+      totalCountPromise,
+      transactionsPromise,
+      summaryByTypePromise,
+    ]);
+
+    const summary = {
+      totalIncome: summaryByType.find((entry) => entry._id === "income")?.total ?? 0,
+      totalExpense: summaryByType.find((entry) => entry._id === "expense")?.total ?? 0,
+    };
 
     return Response.json({
       transactions,
@@ -73,13 +125,27 @@ export async function GET(request: Request) {
         ...summary,
         balance: summary.totalIncome - summary.totalExpense,
       },
+      pagination: shouldPaginate
+        ? {
+            page,
+            limit,
+            totalCount,
+            totalPages: Math.max(1, Math.ceil(totalCount / limit)),
+            hasNextPage: page * limit < totalCount,
+            hasPrevPage: page > 1,
+          }
+        : null,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    if (error instanceof z.ZodError) {
+      return jsonError(error.issues[0]?.message ?? "Invalid transaction query", 422);
+    }
+
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to load transactions", 500);
   }
 }
@@ -95,6 +161,8 @@ export async function POST(request: Request) {
 
     await connectToDatabase();
 
+    const categoryId = await resolveAccessibleCategoryId(payload.categoryId, userId);
+
     const transaction = await Transaction.create({
       userId: toObjectId(userId),
       type: payload.type,
@@ -102,7 +170,7 @@ export async function POST(request: Request) {
       notes: payload.notes,
       amount: payload.amount,
       currency: "INR",
-      categoryId: payload.categoryId ? toObjectId(payload.categoryId) : undefined,
+      categoryId,
       transactionDate: new Date(payload.transactionDate),
       recurring: payload.recurring
         ? {
@@ -110,7 +178,7 @@ export async function POST(request: Request) {
             frequency: payload.recurring.frequency,
             nextRunAt: payload.recurring.nextRunAt
               ? new Date(payload.recurring.nextRunAt)
-              : undefined,
+              : new Date(payload.transactionDate),
           }
         : {
             enabled: false,
@@ -127,7 +195,7 @@ export async function POST(request: Request) {
       return jsonError(error.issues[0]?.message ?? "Invalid transaction input", 422);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to create transaction", 500);
   }
 }

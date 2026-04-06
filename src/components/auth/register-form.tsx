@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { GoogleSignInButton } from "@/components/auth/google-signin-button";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -11,6 +12,30 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showGoogle, setShowGoogle] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProviders() {
+      const response = await fetch("/api/auth/providers");
+      const providers = (await response.json().catch(() => null)) as
+        | Record<string, { id: string }>
+        | null;
+
+      if (!isMounted) {
+        return;
+      }
+
+      setShowGoogle(Boolean(providers?.google?.id));
+    }
+
+    void loadProviders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -39,7 +64,19 @@ export function RegisterForm() {
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
+    <div className="space-y-4">
+      {showGoogle ? (
+        <>
+          <GoogleSignInButton />
+          <div className="flex items-center gap-3 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
+            <span className="h-px flex-1 bg-[var(--color-border)]" />
+            <span>or</span>
+            <span className="h-px flex-1 bg-[var(--color-border)]" />
+          </div>
+        </>
+      ) : null}
+
+      <form className="space-y-4" onSubmit={handleSubmit}>
       <div className="space-y-1">
         <label htmlFor="name" className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">
           Full Name
@@ -98,6 +135,7 @@ export function RegisterForm() {
       >
         {isLoading ? "Creating account..." : "Create account"}
       </button>
-    </form>
+      </form>
+    </div>
   );
 }

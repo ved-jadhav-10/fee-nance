@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { requireUserId } from "@/lib/api-auth";
+import { resolveAccessibleCategoryId } from "@/lib/category-access";
 import { connectToDatabase } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Budget } from "@/models/Budget";
 
 const updateBudgetSchema = z.object({
@@ -51,7 +53,8 @@ export async function PATCH(
       budget.cycle = payload.cycle;
     }
     if (payload.categoryId !== undefined) {
-      budget.categoryId = payload.categoryId ? toObjectId(payload.categoryId) : undefined;
+      const categoryId = await resolveAccessibleCategoryId(payload.categoryId, userId);
+      budget.categoryId = categoryId;
     }
 
     budget.periodStart = periodStart;
@@ -73,7 +76,7 @@ export async function PATCH(
       return jsonError(error.message, 422);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to update budget", 500);
   }
 }
@@ -103,7 +106,7 @@ export async function DELETE(
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to delete budget", 500);
   }
 }

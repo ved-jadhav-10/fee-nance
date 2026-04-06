@@ -1,4 +1,4 @@
-import { approxEqual, assertPositiveAmount, roundCurrency } from "@/lib/money";
+import { assertPositiveAmount, roundCurrency } from "@/lib/money";
 
 export type SplitType = "equal" | "custom" | "percentage";
 
@@ -25,8 +25,20 @@ export interface PairwiseBalance {
 }
 
 function assertTotals(total: number, computedTotal: number, fieldName: string) {
-  if (!approxEqual(total, computedTotal)) {
+  if (roundCurrency(total) !== roundCurrency(computedTotal)) {
     throw new Error(`${fieldName} total must exactly match expense total`);
+  }
+}
+
+function assertDistinctUsers(items: Array<{ userId: string }>, label: string) {
+  const set = new Set<string>();
+
+  for (const item of items) {
+    if (set.has(item.userId)) {
+      throw new Error(`${label} contains duplicate users`);
+    }
+
+    set.add(item.userId);
   }
 }
 
@@ -34,6 +46,8 @@ export function validatePayers(totalAmount: number, payers: PayerInput[]) {
   if (!payers.length) {
     throw new Error("At least one payer is required");
   }
+
+  assertDistinctUsers(payers, "Payer list");
 
   const payerSum = roundCurrency(
     payers.reduce((acc, payer) => {
@@ -81,6 +95,8 @@ export function computeShares(
     }
   }
 
+  assertDistinctUsers(splits, "Split list");
+
   if (splitType === "custom") {
     const computed = splits.map((split) => ({
       userId: split.userId,
@@ -102,7 +118,7 @@ export function computeShares(
     splits.reduce((acc, split) => acc + (split.percentage ?? 0), 0),
   );
 
-  if (!approxEqual(percentageTotal, 100)) {
+  if (percentageTotal !== 100) {
     throw new Error("Percentage split must total 100");
   }
 

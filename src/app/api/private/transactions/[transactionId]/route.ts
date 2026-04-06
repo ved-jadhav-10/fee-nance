@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { requireUserId } from "@/lib/api-auth";
+import { resolveAccessibleCategoryId } from "@/lib/category-access";
 import { connectToDatabase } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Transaction } from "@/models/Transaction";
 
 const updateTransactionSchema = z.object({
@@ -58,7 +60,8 @@ export async function PATCH(
       transaction.amount = payload.amount;
     }
     if (payload.categoryId !== undefined) {
-      transaction.categoryId = payload.categoryId ? toObjectId(payload.categoryId) : undefined;
+      const categoryId = await resolveAccessibleCategoryId(payload.categoryId, userId);
+      transaction.categoryId = categoryId;
     }
     if (payload.transactionDate) {
       transaction.transactionDate = new Date(payload.transactionDate);
@@ -89,7 +92,7 @@ export async function PATCH(
       return jsonError(error.message, 422);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to update transaction", 500);
   }
 }
@@ -119,7 +122,7 @@ export async function DELETE(
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to delete transaction", 500);
   }
 }

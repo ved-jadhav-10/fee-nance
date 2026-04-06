@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "../lib/db";
 import { ensureDefaultCategories } from "../lib/default-categories";
 import { generateInviteCode } from "../lib/invite-code";
+import { logger } from "../lib/logger";
 import { Budget } from "../models/Budget";
 import { Category } from "../models/Category";
 import { Group } from "../models/Group";
@@ -153,16 +154,16 @@ async function seed() {
     incurredAt: new Date(),
   });
 
-  console.info("Seed complete");
-  console.info("Demo accounts:");
-  console.info("- alex@feenance.demo / Demo@1234");
-  console.info("- riya@feenance.demo / Demo@1234");
+  logger.info("Seed complete");
+  logger.info("Demo accounts:");
+  logger.info("- alex@feenance.demo / Demo@1234");
+  logger.info("- riya@feenance.demo / Demo@1234");
 
   await mongoose.disconnect();
 }
 
 seed().catch(async (error) => {
-  console.error(error);
+  logger.error("Seed execution failed", error);
   await mongoose.disconnect();
   process.exit(1);
 });

@@ -1,7 +1,9 @@
 import { requireUserId } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
+import { getGroupMemberIds } from "@/lib/group-members";
 import { jsonError } from "@/lib/http";
 import { toObjectId } from "@/lib/object-id";
+import { logger } from "@/lib/logger";
 import { Group } from "@/models/Group";
 
 export async function GET(
@@ -22,9 +24,7 @@ export async function GET(
       return jsonError("Group not found", 404);
     }
 
-    const memberIds = group.members.map((member: { userId: { _id: { toString(): string } } }) =>
-      member.userId._id.toString(),
-    );
+    const memberIds = getGroupMemberIds(group);
 
     if (!memberIds.includes(userId)) {
       return jsonError("Forbidden", 403);
@@ -36,7 +36,11 @@ export async function GET(
       return jsonError("Unauthorized", 401);
     }
 
-    console.error(error);
+    if (error instanceof Error && error.message === "Invalid identifier") {
+      return jsonError("Invalid identifier", 422);
+    }
+
+    logger.error("Unhandled API route error", error);
     return jsonError("Failed to load group", 500);
   }
 }

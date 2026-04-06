@@ -6,6 +6,10 @@ import { connectToDatabase } from "@/lib/db";
 import { env } from "@/lib/env";
 import { User } from "@/models/User";
 
+function isObjectIdLike(value: string | undefined) {
+  return Boolean(value && /^[a-f\d]{24}$/i.test(value));
+}
+
 const providers: NextAuthOptions["providers"] = [
   CredentialsProvider({
     name: "Email and Password",
@@ -54,8 +58,14 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
 }
 
 export const authOptions: NextAuthOptions = {
+  secret: env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
+    maxAge: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
+  },
+  jwt: {
+    maxAge: 60 * 60 * 24 * 7,
   },
   providers,
   callbacks: {
@@ -87,12 +97,12 @@ export const authOptions: NextAuthOptions = {
 
       return true;
     },
-    async jwt({ token, user }) {
-      if (user?.id) {
+    async jwt({ token, user, account }) {
+      if (account?.provider === "credentials" && user?.id) {
         token.id = user.id;
       }
 
-      if (!token.id && token.email) {
+      if (!isObjectIdLike(typeof token.id === "string" ? token.id : undefined) && token.email) {
         await connectToDatabase();
         const dbUser = await User.findOne({ email: token.email.toLowerCase() }).lean();
         if (dbUser?._id) {
