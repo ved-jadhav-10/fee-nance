@@ -49,6 +49,9 @@ export function GroupDetail({ groupId }: GroupDetailProps) {
     note: "",
   });
 
+  const [expenseError, setExpenseError] = useState<string | null>(null);
+  const [settlementError, setSettlementError] = useState<string | null>(null);
+
   const groupQuery = useQuery<GroupPayload>(`/api/private/groups/${groupId}`);
   const expensesQuery = useQuery<{ expenses: Array<{ _id: string; title: string; amount: number; splitType: string; incurredAt: string }> }>(
     `/api/private/groups/${groupId}/expenses`,
@@ -80,6 +83,7 @@ export function GroupDetail({ groupId }: GroupDetailProps) {
 
   const handleCreateExpense = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setExpenseError(null);
 
     const total = Number(amount);
     const fallbackPayer = members[0]?.userId._id;
@@ -111,7 +115,7 @@ export function GroupDetail({ groupId }: GroupDetailProps) {
               return (entry as { percentage?: number }).percentage && (entry as { percentage: number }).percentage > 0;
             });
 
-    await fetch(`/api/private/groups/${groupId}/expenses`, {
+    const response = await fetch(`/api/private/groups/${groupId}/expenses`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -125,26 +129,49 @@ export function GroupDetail({ groupId }: GroupDetailProps) {
       }),
     });
 
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setExpenseError((data as { error?: string }).error ?? "Failed to create expense");
+      return;
+    }
+
     setTitle("");
     setAmount("");
     setNote("");
     setSplitType("equal");
+    setPayerMap({});
+    setSplitMap({});
     refreshAll();
   };
 
   const handleCreateSettlement = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSettlementError(null);
 
-    await fetch(`/api/private/groups/${groupId}/settlements`, {
+    const fromId = settlementForm.fromUserId || defaultFromUserId;
+    const toId = settlementForm.toUserId || defaultToUserId;
+
+    if (fromId === toId) {
+      setSettlementError("Payer and receiver must be different members");
+      return;
+    }
+
+    const response = await fetch(`/api/private/groups/${groupId}/settlements`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        fromUserId: settlementForm.fromUserId || defaultFromUserId,
-        toUserId: settlementForm.toUserId || defaultToUserId,
+        fromUserId: fromId,
+        toUserId: toId,
         amount: Number(settlementForm.amount),
         note: settlementForm.note || undefined,
       }),
     });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setSettlementError((data as { error?: string }).error ?? "Failed to record settlement");
+      return;
+    }
 
     setSettlementForm((current) => ({ ...current, amount: "", note: "" }));
     refreshAll();
@@ -284,6 +311,9 @@ export function GroupDetail({ groupId }: GroupDetailProps) {
             >
               Save Expense
             </button>
+            {expenseError ? (
+              <p className="text-xs text-[var(--color-danger)]">{expenseError}</p>
+            ) : null}
           </form>
         </article>
 
@@ -345,6 +375,9 @@ export function GroupDetail({ groupId }: GroupDetailProps) {
             >
               Record Settlement
             </button>
+            {settlementError ? (
+              <p className="text-xs text-[var(--color-danger)]">{settlementError}</p>
+            ) : null}
           </form>
 
           <div className="mt-6 space-y-2">

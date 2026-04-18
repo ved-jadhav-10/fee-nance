@@ -1,4 +1,5 @@
 import { GroupManager } from "@/components/groups/group-manager";
+import { GroupAnalyticsSuite } from "@/components/groups/group-analytics-suite";
 
 export default function GroupsPage() {
   return (
@@ -13,6 +14,18 @@ export default function GroupsPage() {
         </p>
       </div>
       <GroupManager />
+      <section className="flex flex-col gap-4">
+        <div className="space-y-1">
+          <p className="section-overline">Analytics</p>
+          <h2 className="font-display text-2xl">
+            Your <span className="display-highlight">balance overview</span>
+          </h2>
+          <p className="text-[13px] text-[var(--color-text-secondary)]">
+            Where you stand across all your groups — who owes you and what you owe.
+          </p>
+        </div>
+        <GroupAnalyticsSuite />
+      </section>
     </div>
   );
 }

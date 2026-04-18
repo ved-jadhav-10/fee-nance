@@ -1,4 +1,5 @@
 import { GroupDetail } from "@/components/groups/group-detail";
+import { GroupDetailAnalytics } from "@/components/groups/group-detail-analytics";
 import Link from "next/link";
 
 export default async function GroupDetailPage({
@@ -29,6 +30,18 @@ export default async function GroupDetailPage({
         </p>
       </div>
       <GroupDetail groupId={groupId} />
+      <section className="flex flex-col gap-4">
+        <div className="space-y-1">
+          <p className="section-overline">Analytics</p>
+          <h2 className="font-display text-2xl">
+            Group <span className="display-highlight">analytics</span>
+          </h2>
+          <p className="text-[13px] text-[var(--color-text-secondary)]">
+            Spend distribution, settlement flows, and member timelines.
+          </p>
+        </div>
+        <GroupDetailAnalytics groupId={groupId} />
+      </section>
     </div>
   );
 }

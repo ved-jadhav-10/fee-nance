@@ -3,11 +3,25 @@
 :root {
   --app-bg-image: url("/gemini_generated_bg.png");
 
-  --layer-0: #08070f;
-  --layer-1: #0d0b1a;
+  /* ── Brand palette ─────────────────────────────────────────── */
+  /* #CECBF6  Shimmer      → accent-light / glow text            */
+  /* #7F77DD  Mid          → hover / secondary accent            */
+  /* #534AB7  Core         → primary accent / CTAs               */
+  /* #3D3690  Deep         → pressed / very dark accent          */
+  /* #1A1835  Elevated     → hover states                        */
+
+  --palette-1: #CECBF6;
+  --palette-2: #7F77DD;
+  --palette-3: #534AB7;
+  --palette-4: #3D3690;
+  --palette-5: #1A1835;
+
+  /* ── Background layers ───────────────────────────────────────── */
+  --layer-0: #08070F;
+  --layer-1: #0D0B1A;
   --layer-2: #131128;
-  --layer-3: #1a1835;
-  --layer-4: #0f0e20;
+  --layer-3: #1A1835;
+  --layer-4: #0F0E20;
 
   --color-bg: var(--layer-0);
   --color-panel: var(--layer-2);
@@ -15,25 +29,44 @@
   --color-elevated: var(--layer-3);
   --color-input: var(--layer-4);
 
-  --color-accent: #534ab7;
-  --color-accent-mid: #7f77dd;
-  --color-accent-light: #cecbf6;
+  /* ── Accent colors ────────────────────────────────────────────── */
+  --color-accent: #534AB7;
+  --color-accent-mid: #7F77DD;
+  --color-accent-light: #CECBF6;
   --color-accent-contrast: #ffffff;
   --color-accent-glow: rgba(83, 74, 183, 0.25);
   --color-border: rgba(83, 74, 183, 0.2);
 
+  /* ── Text ────────────────────────────────────────────────────── */
   --color-text: #ffffff;
-  --color-text-secondary: #a8a3d0;
-  --color-text-tertiary: #5c5875;
-  --color-text-disabled: #3a3850;
+  --color-text-secondary: #A8A3D0;
+  --color-text-tertiary: #5C5875;
+  --color-text-disabled: #3A3850;
   --color-muted: var(--color-text-secondary);
 
+  /* ── Semantic ────────────────────────────────────────────────── */
   --color-success: #1d9e75;
   --color-warning: #ba7517;
   --color-danger: #a32d2d;
   --color-info: #185fa5;
 
-  --divider-color: rgba(255, 255, 255, 0.05);
+  --divider-color: rgba(83, 74, 183, 0.12);
+
+  /* ── Dynamic theme vars (overridden at runtime by ThemeProvider) */
+  --font-size-base: 14px;
+  --sidebar-width: 220px;
+
+  /* ── Chart palette (shades of accent blue-purple) ────────────── */
+  --chart-1: #7F77DD;
+  --chart-2: #CECBF6;
+  --chart-3: #534AB7;
+  --chart-4: #A09BD6;
+  --chart-5: #9690CC;
+  --chart-6: #B8B4E8;
+  --chart-7: #3D3690;
+  --chart-8: #E5E3FC;
+  --chart-9: #2E2870;
+  --chart-10: #C5C1F2;
 }
 
 @theme inline {
@@ -43,16 +76,22 @@
   --font-mono: var(--font-mono);
 }
 
+/* Default --font-body until ThemeProvider overrides it at runtime */
+:root {
+  --font-body: var(--font-dm-sans);
+}
+
 body {
   position: relative;
   isolation: isolate;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 15% 12%, rgba(83, 74, 183, 0.18), transparent 38%),
-    radial-gradient(circle at 82% 22%, rgba(127, 119, 221, 0.14), transparent 42%),
-    linear-gradient(180deg, #0a0913 0%, #08070f 56%, #070610 100%);
+    radial-gradient(circle at 15% 12%, rgba(83, 74, 183, 0.22), transparent 38%),
+    radial-gradient(circle at 82% 22%, rgba(127, 119, 221, 0.16), transparent 42%),
+    linear-gradient(180deg, #0a0918 0%, #08070F 56%, #07060D 100%);
   color: var(--color-text);
   font-family: var(--font-body), sans-serif;
+  font-size: var(--font-size-base);
   line-height: 1.6;
   color-scheme: dark;
 }
@@ -77,8 +116,8 @@ body::after {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 42%, rgba(8, 7, 15, 0) 18%, rgba(8, 7, 15, 0.34) 62%, rgba(8, 7, 15, 0.74) 100%),
-    linear-gradient(180deg, rgba(4, 3, 10, 0.32), rgba(4, 3, 10, 0.46));
+    radial-gradient(circle at 50% 42%, rgba(8, 7, 15, 0) 18%, rgba(8, 7, 15, 0.38) 62%, rgba(7, 6, 13, 0.78) 100%),
+    linear-gradient(180deg, rgba(8, 7, 15, 0.32), rgba(7, 6, 13, 0.48));
 }
 
 select,
@@ -115,7 +154,7 @@ select optgroup {
 }
 
 .display-highlight {
-  background: linear-gradient(90deg, #cecbf6, #534ab7, #7f77dd, #cecbf6);
+  background: linear-gradient(90deg, #CECBF6, #534AB7, #7F77DD, #CECBF6);
   background-size: 300% 100%;
   animation: shimmer 3s ease infinite;
   -webkit-background-clip: text;
@@ -144,7 +183,7 @@ select optgroup {
 
 .btn-primary:hover {
   background: var(--color-accent-mid);
-  box-shadow: 0 0 20px rgba(83, 74, 183, 0.35);
+  box-shadow: 0 0 20px rgba(83, 74, 183, 0.4);
 }
 
 .btn-primary:active {
@@ -153,16 +192,16 @@ select optgroup {
 
 .btn-ghost {
   border-radius: 8px;
-  border: 1px solid rgba(127, 119, 221, 0.62);
+  border: 1px solid rgba(127, 119, 221, 0.52);
   color: var(--color-text-secondary);
-  background: rgba(127, 119, 221, 0.02);
+  background: rgba(127, 119, 221, 0.04);
   transition: all 200ms ease;
 }
 
 .btn-ghost:hover {
-  border-color: rgba(206, 203, 246, 0.72);
+  border-color: rgba(206, 203, 246, 0.5);
   color: var(--color-text);
-  background: rgba(127, 119, 221, 0.14);
+  background: rgba(127, 119, 221, 0.12);
 }
 
 .app-shell {
@@ -178,9 +217,9 @@ select optgroup {
 .landing-liquid {
   position: relative;
   background:
-    radial-gradient(circle at 26% 24%, rgba(109, 92, 236, 0.1), transparent 34%),
-    radial-gradient(circle at 74% 34%, rgba(130, 83, 187, 0.1), transparent 33%),
-    radial-gradient(circle at 42% 82%, rgba(42, 51, 146, 0.1), transparent 38%);
+    radial-gradient(circle at 26% 24%, rgba(83, 74, 183, 0.1), transparent 34%),
+    radial-gradient(circle at 74% 34%, rgba(100, 92, 200, 0.1), transparent 33%),
+    radial-gradient(circle at 42% 82%, rgba(50, 45, 140, 0.1), transparent 38%);
 }
 
 .landing-liquid::before,
@@ -197,12 +236,12 @@ select optgroup {
   background:
     conic-gradient(
       from 130deg,
-      rgba(29, 25, 71, 0.88) 0deg,
-      rgba(88, 58, 129, 0.4) 52deg,
-      rgba(121, 89, 143, 0.26) 110deg,
-      rgba(24, 22, 62, 0.9) 182deg,
-      rgba(92, 66, 124, 0.34) 236deg,
-      rgba(20, 18, 53, 0.92) 360deg
+      rgba(22, 20, 52, 0.88) 0deg,
+      rgba(74, 68, 150, 0.4) 52deg,
+      rgba(100, 94, 170, 0.26) 110deg,
+      rgba(20, 18, 48, 0.9) 182deg,
+      rgba(78, 72, 138, 0.34) 236deg,
+      rgba(16, 14, 40, 0.92) 360deg
     );
   opacity: 0.28;
   mix-blend-mode: screen;
@@ -213,12 +252,12 @@ select optgroup {
   background:
     conic-gradient(
       from 220deg,
-      rgba(13, 10, 30, 0.88) 0deg,
-      rgba(157, 88, 107, 0.2) 70deg,
-      rgba(66, 50, 124, 0.28) 136deg,
-      rgba(22, 18, 52, 0.92) 208deg,
-      rgba(121, 82, 134, 0.24) 292deg,
-      rgba(9, 7, 20, 0.92) 360deg
+      rgba(11, 10, 24, 0.88) 0deg,
+      rgba(83, 74, 183, 0.18) 70deg,
+      rgba(64, 58, 124, 0.28) 136deg,
+      rgba(20, 18, 46, 0.92) 208deg,
+      rgba(98, 90, 160, 0.22) 292deg,
+      rgba(7, 6, 15, 0.92) 360deg
     );
   opacity: 0.2;
   mix-blend-mode: lighten;
@@ -235,9 +274,9 @@ select optgroup {
   z-index: 20;
   min-height: 72px;
   padding: 0 24px;
-  border: 1px solid rgba(115, 110, 178, 0.22);
+  border: 1px solid rgba(83, 74, 183, 0.2);
   border-radius: 16px;
-  background: rgba(8, 7, 17, 0.5);
+  background: rgba(8, 7, 15, 0.5);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(14px) saturate(130%);
   -webkit-backdrop-filter: blur(14px) saturate(130%);
@@ -259,17 +298,17 @@ select optgroup {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: linear-gradient(180deg, #8a7ef5 0%, #786de0 100%);
-  color: rgba(14, 10, 35, 0.94);
-  border: 1px solid rgba(172, 166, 255, 0.46);
-  box-shadow: 0 10px 26px rgba(68, 56, 158, 0.36);
+  background: linear-gradient(180deg, #7F77DD 0%, #534AB7 100%);
+  color: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(206, 203, 246, 0.25);
+  box-shadow: 0 10px 26px rgba(83, 74, 183, 0.36);
   transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
 }
 
 .landing-primary-btn:hover {
-  filter: brightness(1.06);
+  filter: brightness(1.08);
   transform: translateY(-1px);
-  box-shadow: 0 14px 30px rgba(89, 74, 197, 0.38);
+  box-shadow: 0 14px 30px rgba(83, 74, 183, 0.44);
 }
 
 .landing-ghost-btn {
@@ -277,37 +316,37 @@ select optgroup {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid rgba(150, 143, 216, 0.58);
-  color: rgba(214, 211, 239, 0.95);
-  background: rgba(18, 15, 37, 0.4);
+  border: 1px solid rgba(127, 119, 221, 0.52);
+  color: rgba(206, 203, 246, 0.95);
+  background: rgba(19, 17, 40, 0.4);
   transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
 }
 
 .landing-ghost-btn:hover {
-  border-color: rgba(187, 182, 234, 0.78);
-  background: rgba(88, 78, 164, 0.22);
+  border-color: rgba(206, 203, 246, 0.5);
+  background: rgba(83, 74, 183, 0.2);
   transform: translateY(-1px);
 }
 
 .landing-glass {
-  border: 1px solid rgba(114, 107, 184, 0.24);
+  border: 1px solid rgba(83, 74, 183, 0.2);
   border-radius: 16px;
   background:
-    linear-gradient(140deg, rgba(24, 21, 50, 0.72) 0%, rgba(13, 11, 30, 0.82) 100%),
-    radial-gradient(circle at 14% 8%, rgba(126, 117, 226, 0.22), transparent 46%);
+    linear-gradient(140deg, rgba(26, 24, 53, 0.72) 0%, rgba(13, 11, 26, 0.82) 100%),
+    radial-gradient(circle at 14% 8%, rgba(127, 119, 221, 0.22), transparent 46%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    0 24px 44px rgba(0, 0, 0, 0.3);
+    0 24px 44px rgba(0, 0, 0, 0.36);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 .landing-glass:hover {
-  border-color: rgba(161, 153, 238, 0.52);
+  border-color: rgba(127, 119, 221, 0.5);
   box-shadow:
-    0 0 0 1px rgba(155, 145, 242, 0.2),
-    0 22px 42px rgba(46, 34, 108, 0.28);
+    0 0 0 1px rgba(127, 119, 221, 0.2),
+    0 22px 42px rgba(44, 40, 108, 0.28);
   transform: translateY(-2px);
 }
 
@@ -318,8 +357,8 @@ select optgroup {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid rgba(152, 145, 221, 0.42);
-  background: rgba(88, 81, 159, 0.24);
+  border: 1px solid rgba(127, 119, 221, 0.42);
+  background: rgba(83, 74, 183, 0.22);
   color: rgba(231, 228, 254, 0.96);
 }
 
@@ -335,9 +374,9 @@ select optgroup {
   min-width: 138px;
   padding: 10px 16px;
   border-radius: 9px;
-  border: 1px solid rgba(132, 125, 203, 0.4);
-  background: rgba(36, 30, 74, 0.38);
-  color: rgba(206, 202, 241, 0.84);
+  border: 1px solid rgba(127, 119, 221, 0.4);
+  background: rgba(19, 17, 40, 0.5);
+  color: rgba(206, 203, 246, 0.84);
   font-size: 11px;
   letter-spacing: 0.1em;
 }
@@ -357,14 +396,14 @@ select optgroup {
   opacity: 0.6;
   filter: blur(74px);
   background:
-    radial-gradient(circle at 50% 50%, rgba(99, 84, 228, 0.64) 0%, rgba(67, 56, 154, 0.46) 34%, rgba(25, 21, 61, 0.1) 74%, transparent 100%);
+    radial-gradient(circle at 50% 50%, rgba(83, 74, 183, 0.64) 0%, rgba(60, 54, 140, 0.46) 34%, rgba(19, 17, 40, 0.1) 74%, transparent 100%);
 }
 
 .frosted-nav {
   position: relative;
   overflow: hidden;
-  background: rgba(8, 7, 15, 0.62);
-  border-color: rgba(127, 119, 221, 0.24);
+  background: rgba(8, 7, 15, 0.72);
+  border-color: rgba(83, 74, 183, 0.2);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.02),
     0 12px 36px rgba(0, 0, 0, 0.28);
@@ -392,17 +431,17 @@ select optgroup {
   overflow: hidden;
   background:
     radial-gradient(circle at 14% 10%, rgba(127, 119, 221, 0.14), transparent 54%),
-    linear-gradient(145deg, rgba(34, 30, 72, 0.45) 0%, rgba(19, 17, 40, 0.98) 54%, rgba(14, 13, 30, 0.96) 100%);
+    linear-gradient(145deg, rgba(26, 24, 53, 0.45) 0%, rgba(19, 17, 40, 0.98) 54%, rgba(13, 12, 26, 0.96) 100%);
 }
 
 .feature-card:hover {
   background:
     radial-gradient(circle at 14% 10%, rgba(127, 119, 221, 0.14), transparent 54%),
-    linear-gradient(145deg, rgba(34, 30, 72, 0.45) 0%, rgba(19, 17, 40, 0.98) 54%, rgba(14, 13, 30, 0.96) 100%);
-  border-color: rgba(163, 153, 255, 0.68);
+    linear-gradient(145deg, rgba(26, 24, 53, 0.45) 0%, rgba(19, 17, 40, 0.98) 54%, rgba(13, 12, 26, 0.96) 100%);
+  border-color: rgba(127, 119, 221, 0.6);
   box-shadow:
-    0 0 0 1px rgba(173, 165, 255, 0.28),
-    0 0 34px rgba(99, 84, 228, 0.22);
+    0 0 0 1px rgba(127, 119, 221, 0.25),
+    0 0 34px rgba(83, 74, 183, 0.22);
 }
 
 .feature-icon {
@@ -426,13 +465,13 @@ select optgroup {
 .curated-panel {
   background:
     radial-gradient(circle at 15% 0%, rgba(127, 119, 221, 0.1), transparent 42%),
-    linear-gradient(170deg, rgba(22, 19, 46, 0.95), rgba(15, 14, 32, 0.96));
+    linear-gradient(170deg, rgba(26, 24, 53, 0.95), rgba(19, 17, 40, 0.96));
 }
 
 .curated-panel:hover {
   background:
     radial-gradient(circle at 15% 0%, rgba(127, 119, 221, 0.1), transparent 42%),
-    linear-gradient(170deg, rgba(22, 19, 46, 0.95), rgba(15, 14, 32, 0.96));
+    linear-gradient(170deg, rgba(26, 24, 53, 0.95), rgba(19, 17, 40, 0.96));
 }
 
 .micro-label {
@@ -503,7 +542,7 @@ select optgroup {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(83, 74, 183, 0.3) transparent;
+  scrollbar-color: rgba(83, 74, 183, 0.35) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -516,15 +555,15 @@ select optgroup {
 
 *::-webkit-scrollbar-thumb {
   border-radius: 2px;
-  background: rgba(83, 74, 183, 0.3);
+  background: rgba(83, 74, 183, 0.35);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(127, 119, 221, 0.5);
+  background: rgba(127, 119, 221, 0.55);
 }
 
 ::selection {
-  background: rgba(83, 74, 183, 0.35);
+  background: rgba(83, 74, 183, 0.4);
   color: #ffffff;
 }
 
@@ -624,7 +663,7 @@ hr {
   text-transform: uppercase;
   border: 1px solid rgba(127, 119, 221, 0.5);
   color: var(--color-accent-light);
-  background: rgba(83, 74, 183, 0.14);
+  background: rgba(83, 74, 183, 0.16);
 }
 
 .vault-badge--dim {
@@ -705,12 +744,13 @@ hr {
 .sidebar {
   display: flex;
   flex-direction: column;
-  width: 220px;
+  width: var(--sidebar-width, 220px);
   flex-shrink: 0;
   background: var(--layer-1);
-  border-right: 1px solid rgba(83, 74, 183, 0.15);
+  border-right: 1px solid rgba(83, 74, 183, 0.18);
   padding: 24px 0 20px;
   overflow-y: auto;
+  transition: width 250ms ease;
 }
 
 .sidebar-brand {
@@ -779,12 +819,12 @@ hr {
 }
 
 .sidebar-link:hover {
-  background: rgba(83, 74, 183, 0.1);
+  background: rgba(83, 74, 183, 0.14);
   color: var(--color-text);
 }
 
 .sidebar-link--active {
-  background: rgba(83, 74, 183, 0.18);
+  background: rgba(83, 74, 183, 0.22);
   color: var(--color-accent-light);
 }
 
@@ -815,7 +855,7 @@ hr {
 
 .sidebar-footer {
   padding: 16px 12px 0;
-  border-top: 1px solid rgba(83, 74, 183, 0.12);
+  border-top: 1px solid rgba(83, 74, 183, 0.14);
   margin-top: 12px;
   display: flex;
   align-items: center;
@@ -875,7 +915,7 @@ hr {
   align-items: center;
   justify-content: center;
   border-radius: 7px;
-  border: 1px solid rgba(127, 119, 221, 0.2);
+  border: 1px solid rgba(83, 74, 183, 0.22);
   background: transparent;
   color: var(--color-text-tertiary);
   cursor: pointer;
