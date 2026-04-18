@@ -24,16 +24,6 @@ const NAV = [
     ),
   },
   {
-    href: "/accounts",
-    label: "Accounts",
-    icon: (
-      <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-        <path d="M2 11a1 1 0 0 1 1-1h3a1 1 0 0 1 0 2H3a1 1 0 0 1-1-1Zm0-4a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Zm0 8a1 1 0 0 1 1-1h7a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Z" />
-        <path d="M16.707 14.293a1 1 0 0 0-1.414 0L14 15.586V12a1 1 0 1 0-2 0v3.586l-1.293-1.293a1 1 0 0 0-1.414 1.414l3 3a1 1 0 0 0 1.414 0l3-3a1 1 0 0 0 0-1.414Z" />
-      </svg>
-    ),
-  },
-  {
     href: "/groups",
     label: "Groups",
     icon: (
