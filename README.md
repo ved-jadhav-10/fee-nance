@@ -1,65 +1,95 @@
-﻿# Fee-Nance
+# Fee-Nance
 
-Fee-Nance is an advanced personal finance and group expense management web app focused on financial clarity, strong data integrity, and practical real-world workflows.
+Most people track personal spending in one app and split group bills in another, so neither view is complete. Fee-Nance puts both in one place: personal income, expenses and budgets alongside shared group expenses and settlements, over a single account and a single set of categories.
 
-## Runtime Direction
-- Runtime database: MongoDB with Mongoose
-- DBMS deliverables: SQL scripts folder for documentation mapping
-- Authentication: Email/password + Google OAuth
-- Currency: INR
-- Budget cycles: Monthly, quarterly, yearly
-- Recurring transactions: Monthly and yearly
-- Group splits: Equal, custom, percentage
-- Settlements: Manual with simplified pairwise balances
+Built with Next.js 16 (App Router), MongoDB and Mongoose. Currency is INR only.
+
+## Status
+
+This is coursework, actively being refactored. What exists today works end to end — auth, personal finance CRUD, group splits, balances, settlements and the analytics dashboards are all live against real data. What does not exist yet is documented honestly in [Known limitations](#known-limitations); the full remediation plan lives in `fee-nance-updates.md`, and the Phase 0 audit that produced it is in `docs/audit/`.
+
+## Architecture
+
+```
+src/app/(app)/*          React Server Components — the authenticated shell
+src/app/api/private/*    Route handlers: auth guard → Zod validation → Mongoose → JSON
+src/lib/*                Pure helpers: split allocation, money rounding, access checks
+src/models/*             Mongoose schemas (7 collections)
+middleware.ts            Session gate over /dashboard, /finance, /groups, /analytics,
+                         /profile and /api/private
+```
+
+Data flows one way: a client component calls a `/api/private` route, the handler resolves the session user, validates input with Zod, scopes the query to that user (or to a group they belong to), and returns plain JSON. Aggregation for the dashboards runs as MongoDB pipelines where possible; group balance folding currently happens in memory.
+
+There is deliberately **no service layer yet** — business logic lives in the route handlers, with `lib/split.ts` and `lib/money.ts` as shared pure functions. Introducing one is Phase 5 of the backlog.
+
+### Authorization model
+
+Two independent layers:
+
+1. **`middleware.ts`** proves a session exists for protected paths. It performs no authorization beyond that and is never relied on for ownership.
+2. **Every handler re-checks access itself.** Personal resources (transactions, budgets, categories, profile) are queried with `userId` in the filter, so a foreign id simply returns 404. Group resources load the group and assert the session user is a current member before any read or write; payers and split participants are validated as members at write time.
+
+Known gaps, tracked as Phase 2 of the backlog: group and category routes return **403** rather than 404 for inaccessible ids (which leaks their existence), membership is checked after fetching rather than in the query, the guard block is copy-pasted across six group routes, and path parameters are validated by ObjectId parsing rather than by Zod.
+
+### Split allocation
+
+`lib/split.ts` implements three strategies behind `computeShares`:
+
+- **equal** — `total / n` rounded to 2 dp, with the residual pushed onto the last member so the parts sum to the total.
+- **custom** — caller supplies each share; the sum must equal the total after rounding.
+- **percentage** — `total × pct / 100` per member; percentages must sum to 100 and the resulting shares must sum to the total, otherwise the write is rejected.
+
+All three compare sums with exact equality *after* rounding to 2 dp, not with an epsilon tolerance. Balances are then folded per member and reduced to a minimal set of pairwise transfers by a greedy debtor/creditor match.
 
 ## Tech Stack
-- Next.js 16 (App Router)
-- React 19
+
+- Next.js 16 (App Router) + React 19
 - TypeScript
-- Tailwind CSS
-- NextAuth
-- MongoDB Atlas + Mongoose
-- Zod
+- Tailwind CSS 4, Radix UI primitives, `next-themes`, `sonner`
+- Recharts, plus a hand-rolled Sankey layout in the analytics suite
+- NextAuth v4 (credentials + optional Google OAuth)
+- MongoDB Atlas + Mongoose 9
+- Zod 4
 
 ## Features
 
 ### Personal finance
-- Category management (system + custom)
-- Transaction create/list with date filtering
-- Budget create/list with cycle support
-- Income/expense summary and balance calculation
+- Categories: 7 seeded system categories plus user-defined ones
+- Transactions: create, edit, delete, filter by date range and category
+- Budgets: monthly, quarterly and yearly cycles, optionally scoped to one category
+- Recurring transactions: monthly and yearly, generated on demand via `POST /api/private/transactions/recurring/run`
+- Income / expense summary and running balance
 
 ### Analytics
-- Financial flow Sankey diagram (gross income → expenses/savings breakdown)
-- Monthly trajectory chart (line and grouped-bar modes)
-- Expenditure composition donut chart with category breakdown
-- Quarterly overview bar chart with savings annotations
+- Financial flow Sankey (gross income → expenses / savings)
+- Monthly trajectory chart, line or grouped-bar
+- Expenditure composition donut with category breakdown
+- Quarterly overview bars with savings annotations
 - Efficiency report: savings rate, expense ratio, deduction rate, overall rating
 - KPI cards: gross income, deductions, net income, expenses, net savings
-- Configurable date range with preset shortcuts (week / month / quarter / YTD / year / custom)
+- Date range presets — week, month, quarter, YTD, year, custom
 
-### Group expense management
-- Group creation with invite code
-- Join group via invite code
-- Multi-payer group expense recording
-- Equal, custom amount, and percentage splits with total-equality validation
-- Balance computation per member
+### Group expenses
+- Create a group (you become owner) or join one with an 8-character invite code
+- Multi-payer expenses: several people can have paid toward one bill
+- Equal, custom-amount and percentage splits, validated against the total
+- Per-member balance computation
 - Simplified pairwise settlement suggestions
-- Manual settlement entries
+- Manual settlement entries, optionally idempotent via an `idempotencyKey`
 
 ### Group analytics
 - Cross-group net balance Sankey (groups you owe vs groups that owe you)
 - Per-group spend timeline with stacked member bars
-- Member spend share donut
+- Member spend share donut and net position bars
 - Top expenses table
-- Split type breakdown (equal / custom / percentage)
-- Settlement flow Sankey with per-node proportional flow sizing
-- Member net position bar chart
+- Split type breakdown
+- Settlement flow Sankey with proportional per-node flow sizing
 
-### Authentication and security
-- NextAuth credentials login
-- Google OAuth (enabled when credentials configured)
-- Protected dashboard and private API routes
+### Auth
+- Email/password registration and login (bcrypt, JWT sessions)
+- Google OAuth, enabled only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set
+- Protected app shell and private API routes
 
 ## Setup and Run
 
@@ -69,20 +99,21 @@ Fee-Nance is an advanced personal finance and group expense management web app f
 npm install
 ```
 
-2. Create local env file
+2. Create a local env file
 
 ```bash
 cp .env.example .env
 ```
 
-3. Fill required variables in `.env`
+3. Fill the required variables in `.env`
 - `MONGODB_URI`
 - `NEXTAUTH_URL` (usually `http://localhost:3000`)
 - `NEXTAUTH_SECRET`
 - `GOOGLE_CLIENT_ID` (optional)
 - `GOOGLE_CLIENT_SECRET` (optional)
+- `LOG_LEVEL` (optional)
 
-4. Seed realistic demo data
+4. Seed demo data
 
 ```bash
 npm run seed
@@ -94,79 +125,86 @@ npm run seed
 npm run dev
 ```
 
-6. Open app
-- `http://localhost:3000`
+6. Open `http://localhost:3000`
 
 ## Scripts
 
-- `npm run dev` - start development server
-- `npm run build` - build for production
-- `npm run start` - run production build
-- `npm run lint` - lint codebase
-- `npm run format` - auto-fix lint formatting issues
-- `npm run seed` - seed realistic demo data
-- `npm run dbms:report` - generate reproducible DBMS report output JSON
+- `npm run dev` — start the development server
+- `npm run build` — production build
+- `npm run start` — run the production build
+- `npm run lint` — lint
+- `npm run format` — lint with `--fix`
+- `npm run seed` — seed demo data
+- `npm run dbms:report` — regenerate `docs/dbms-report-output.json`
 
-## Environment Variables
+There is no test script yet; adding Vitest is Phase 4 of the backlog.
 
-Required:
-- `MONGODB_URI`
-- `NEXTAUTH_URL`
-- `NEXTAUTH_SECRET`
+## Routes
 
-Optional:
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `LOG_LEVEL`
+| Path | Purpose |
+|---|---|
+| `/` | Landing page |
+| `/login`, `/register` | Authentication |
+| `/dashboard` | Balance, trends, recent activity |
+| `/finance` | Transactions, budgets, categories |
+| `/groups`, `/groups/[groupId]` | Group list and group workspace |
+| `/analytics` | Deeper breakdowns and trajectory |
+| `/profile` | Account details and preferences |
 
-## Documentation Index (Phase 10)
-
-Architecture and flow:
-- `docs/architecture-module-flow.md`
-
-ER and normalization:
-- `docs/er-diagram.md`
-- `docs/relational-mapping.md`
-
-Private API reference:
-- `docs/private-api-reference.md`
-
-Demo walkthrough script:
-- `docs/demo-script.md`
-
-QA checklist:
-- `docs/manual-qa-checklist.md`
+Private APIs live under `/api/private/*`. They are enumerated in `docs/private-api-reference.md`.
 
 ## Demo Seed Data
 
-Run:
+`npm run seed` creates nine users, system categories, a year of transactions, budgets, groups, group expenses and settlements. Password is `Demo@1234` for every account:
 
-```bash
-npm run seed
-```
+`alex@` · `riya@` · `kabir@` · `priya@` · `arjun@` · `nisha@` · `dev@` · `sneha@` · `rahul@` — all `@feenance.demo`
 
-Generate DBMS reproducible report output:
+## Documentation Index
 
-```bash
-npm run dbms:report
-```
+Overview:
+- `docs/what-is-fee-nance.md` — what the project is and who it is for
+- `docs/fee-nance-features.md` — full implemented-feature list
+- `docs/architecture-module-flow.md` — module and request flow
 
-Demo accounts (password `Demo@1234` for all):
-- alex@feenance.demo
-- riya@feenance.demo
-- kabir@feenance.demo
-- priya@feenance.demo
-- arjun@feenance.demo
-- nisha@feenance.demo
-- dev@feenance.demo
-- sneha@feenance.demo
-- rahul@feenance.demo
+Database:
+- `docs/DBMS.md` — consolidated DBMS write-up
+- `docs/er-diagram.md`, `docs/relational-mapping.md`
+- `docs/dbms-query-mapping.md`, `docs/mongo-relational-equivalents.md`
+- `docs/viva-notes-mongodb-vs-relational.md`
+
+API and operations:
+- `docs/private-api-reference.md`
+- `docs/secrets-policy.md`
+- `docs/demo-script.md`, `docs/manual-qa-checklist.md`
+
+Phase 0 audit (read-only findings that drive the backlog):
+- `docs/audit/codebase-map.md` — every route, model and helper
+- `docs/audit/money-path.md` — where amounts are read, written and compared
+- `docs/audit/authorization.md` — per-route ownership check table
+- `docs/audit/split-allocation.md` — remainder handling
+- `docs/audit/balance-settlement.md` — query patterns and round-trips
+- `docs/audit/dead-code.md` — unused symbols and unimplemented claims
+
+## Known limitations
+
+Confirmed by the Phase 0 audit, not speculation:
+
+- **Money is stored as floating-point rupees.** Correctness depends on `roundCurrency` being called after every operation, and `balances`/`analytics` still use epsilon thresholds where `split.ts` uses exact-after-round equality. Migrating to integer minor units behind a `Money` value object is Phase 1.
+- **Percentage splits have no explicit remainder rule.** They reject inputs whose rounded shares miss the total instead of allocating the residual.
+- **No automated tests.** The money math is unverified by anything but manual QA.
+- **No service layer.** Route handlers mix validation, business logic and persistence.
+- **Missing endpoints.** Group expenses and settlements cannot be edited or deleted, and there is no member-removal or leave-group route.
+- **Categories hard-delete.** Transactions and budgets referencing a deleted category are left with a dangling `categoryId` and render as "Uncategorized".
+- **Invite codes use `Math.random()`**, not a cryptographic source.
+- **`403` on inaccessible group and category ids** allows id enumeration.
+
+---
 
 ## Data Modelling
 
-Fee-Nance models financial data using MongoDB documents with Mongoose schemas, designed to mirror relational database concepts for DBMS study purposes.
+Fee-Nance stores data as MongoDB documents with Mongoose schemas, modelled to map cleanly onto a normalised relational schema for the DBMS coursework.
 
-### Collections and schema overview
+### Collections
 
 | Collection | Purpose |
 |---|---|
@@ -190,6 +228,18 @@ Fee-Nance models financial data using MongoDB documents with Mongoose schemas, d
 - `groupexpenses.splits[].userId` → `users._id`
 - `settlements.groupId` → `groups._id`
 - `settlements.fromUserId` / `toUserId` → `users._id`
+
+### Indexes
+
+| Collection | Index | Serves |
+|---|---|---|
+| `users` | `email` unique, `googleId` | Login lookup, OAuth linking |
+| `categories` | `{userId, name, type}` unique sparse, `isSystem` | Duplicate prevention, category list |
+| `transactions` | `{userId, transactionDate}`, `{userId, type, transactionDate}`, `{userId, categoryId, transactionDate}` | Date-range list, summary aggregation, category breakdown |
+| `budgets` | `{userId, cycle, periodStart}` | Active budget lookup per cycle |
+| `groups` | `inviteCode` unique, `members.userId` | Join by code, "my groups" |
+| `groupexpenses` | `{groupId, incurredAt}`, `createdBy`, `splitType` | Group expense timeline |
+| `settlements` | `{groupId, settledAt}`, `{groupId, createdBy, idempotencyKey}` unique partial | Settlement history, duplicate suppression |
 
 ---
 
@@ -227,13 +277,13 @@ Fee-Nance models financial data using MongoDB documents with Mongoose schemas, d
 | `type` | String | ✓ | `"income"` \| `"expense"` |
 | `title` | String | ✓ | Short description |
 | `notes` | String | — | Free-text notes |
-| `amount` | Number | ✓ | Non-negative, in paise-equivalent INR |
+| `amount` | Number | ✓ | Non-negative, in rupees (float — see Known limitations) |
 | `currency` | String | ✓ | `"INR"` |
 | `categoryId` | ObjectId | — | FK → categories |
 | `transactionDate` | Date | ✓ | When the transaction occurred |
 | `recurring.enabled` | Boolean | ✓ | Whether recurrence is active |
 | `recurring.frequency` | String | — | `"monthly"` \| `"yearly"` |
-| `recurring.nextRunAt` | Date | — | Next scheduled occurrence |
+| `recurring.nextRunAt` | Date | — | Next scheduled occurrence; read by the recurring runner |
 
 ### budgets
 | Field | Type | Required | Notes |
@@ -270,11 +320,12 @@ Fee-Nance models financial data using MongoDB documents with Mongoose schemas, d
 | `amount` | Number | ✓ | Total expense amount |
 | `currency` | String | ✓ | `"INR"` |
 | `splitType` | String | ✓ | `"equal"` \| `"custom"` \| `"percentage"` |
-| `paidBy[].userId` | ObjectId | ✓ | Who paid and how much |
-| `paidBy[].amount` | Number | ✓ | |
+| `paidBy[].userId` | ObjectId | ✓ | Who paid |
+| `paidBy[].amount` | Number | ✓ | How much they paid |
 | `splits[].userId` | ObjectId | ✓ | Each member's share |
-| `splits[].shareAmount` | Number | ✓ | Computed owed amount |
-| `splits[].percentage` | Number | — | Used for percentage splits |
+| `splits[].amount` | Number | — | Raw input for custom splits; provenance only |
+| `splits[].percentage` | Number | — | Raw input for percentage splits; provenance only |
+| `splits[].shareAmount` | Number | ✓ | Computed owed amount — the source of truth |
 | `incurredAt` | Date | ✓ | When the expense occurred |
 
 ### settlements
@@ -289,12 +340,13 @@ Fee-Nance models financial data using MongoDB documents with Mongoose schemas, d
 | `note` | String | — | Optional note |
 | `settledAt` | Date | ✓ | Settlement timestamp |
 | `createdBy` | ObjectId | ✓ | FK → users |
+| `idempotencyKey` | String | — | Optional; unique per `(groupId, createdBy)` when present |
 
 ---
 
 ## Relational Database Design
 
-The SQL equivalents below show how the document model maps to a normalised relational schema. Full DDL, DML, and query scripts are in `sql-scripts/`.
+The SQL equivalents below show how the document model maps to a normalised relational schema. Full DDL, DML and query scripts are in `sql-scripts/` — they are documentation artifacts, not runtime migrations.
 
 ### Equivalent relational schema (normalised to 3NF)
 
@@ -341,25 +393,15 @@ Settlements    (settlement_id PK, group_id FK, from_user_id FK, to_user_id FK, a
 | `expensesplits` | `expense_id`, `user_id` | `groupexpenses`, `users` |
 | `settlements` | `group_id`, `from_user_id`, `to_user_id`, `created_by` | `groups`, `users` |
 
-See `docs/relational-mapping.md` for a detailed column-by-column comparison and `docs/er-diagram.md` for the ER diagram.
+MongoDB does not enforce these at the storage layer; they are upheld in application code, which is why the dangling-`categoryId` case listed under Known limitations is possible.
 
----
+See `docs/relational-mapping.md` for the column-by-column comparison and `docs/er-diagram.md` for the ER diagram.
 
 ## DBMS Deliverables
 
-- `sql-scripts/` (DDL, DML, joins, subqueries, GROUP BY, HAVING, logic-flow equivalents)
+- `sql-scripts/` — DDL, DML, joins, subqueries, GROUP BY / HAVING, trigger and procedure equivalents
+- `docs/DBMS.md`
 - `docs/dbms-query-mapping.md`
 - `docs/mongo-relational-equivalents.md`
 - `docs/viva-notes-mongodb-vs-relational.md`
-- `docs/dbms-report-output.json` (generated via `npm run dbms:report`)
-
-## Main Routes
-- / landing page
-- /login sign in
-- /register sign up
-- /dashboard protected dashboard
-
-## Notes
-- Private APIs are under /api/private and are not publicly documented.
-- sql-scripts contains documentation-only relational mapping SQL, not runtime migrations.
-- Follow `docs/secrets-policy.md` for environment and secret handling practices.
+- `docs/dbms-report-output.json` — regenerate with `npm run dbms:report`
