@@ -1,17 +1,17 @@
+import type { Metadata } from "next";
+
+import { PageHeader } from "@/components/layout/page-header";
 import { AnalyticsSuite } from "@/components/analytics/analytics-suite";
+
+export const metadata: Metadata = { title: "Analytics" };
 
 export default function AnalyticsPage() {
   return (
-    <div className="flex flex-col gap-8">
-      <div className="space-y-1">
-        <p className="section-overline">Insights</p>
-        <h1 className="font-display text-[40px]">
-          Analytics <span className="display-highlight">suite</span>
-        </h1>
-        <p className="text-[14px] text-[var(--color-text-secondary)]">
-          Deep-dive into your financial health — income, deductions, spending taxonomy, and trajectory.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Analytics"
+        description="Trends, category breakdowns and savings trajectory, built from your ledger."
+      />
       <AnalyticsSuite />
     </div>
   );

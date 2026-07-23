@@ -1,36 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import * as React from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { AlertCircle } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/field";
+import { Separator } from "@/components/ui/misc";
 import { GoogleSignInButton } from "@/components/auth/google-signin-button";
+import { PasswordInput } from "@/components/auth/password-input";
 
 export function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showGoogle, setShowGoogle] = useState(false);
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [showGoogle, setShowGoogle] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     let isMounted = true;
 
     async function loadProviders() {
       const response = await fetch("/api/auth/providers");
-      const providers = (await response.json().catch(() => null)) as
-        | Record<string, { id: string }>
-        | null;
-
-      if (!isMounted) {
-        return;
-      }
-
-      setShowGoogle(Boolean(providers?.google?.id));
+      const providers = (await response.json().catch(() => null)) as Record<
+        string,
+        { id: string }
+      > | null;
+      if (isMounted) setShowGoogle(Boolean(providers?.google?.id));
     }
 
     void loadProviders();
-
     return () => {
       isMounted = false;
     };
@@ -46,11 +48,13 @@ export function LoginForm() {
       password,
       redirect: false,
     });
-
     setIsLoading(false);
 
     if (result?.error) {
-      setError("Invalid email or password");
+      // Deliberately doesn't say which field was wrong — that would leak
+      // whether an account exists for this address.
+      setError("That email and password combination didn't match. Try again.");
+      document.getElementById("login-password")?.focus();
       return;
     }
 
@@ -59,61 +63,53 @@ export function LoginForm() {
   };
 
   return (
-    <div className="space-y-4">
-      {showGoogle ? (
+    <div className="space-y-5">
+      {showGoogle && (
         <>
           <GoogleSignInButton />
-          <div className="flex items-center gap-3 text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
-            <span className="h-px flex-1 bg-[var(--color-border)]" />
-            <span>or</span>
-            <span className="h-px flex-1 bg-[var(--color-border)]" />
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <Separator className="flex-1" />
           </div>
         </>
-      ) : null}
+      )}
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="space-y-1">
-          <label htmlFor="email" className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">
-            Email
-          </label>
-          <input
-            id="email"
+      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+        <Field label="Email" htmlFor="login-email" required>
+          <Input
             type="email"
-            required
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-md border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
           />
-        </div>
+        </Field>
 
-        <div className="space-y-1">
-          <label
-            htmlFor="password"
-            className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]"
-          >
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            required
+        <Field label="Password" htmlFor="login-password" required>
+          <PasswordInput
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-md border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
-            placeholder="Enter your password"
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Your password"
+            autoComplete="current-password"
           />
-        </div>
+        </Field>
 
-        {error ? <p className="text-sm text-red-400">{error}</p> : null}
+        {error && (
+          <p
+            role="alert"
+            className="flex items-start gap-2 rounded-md bg-destructive-subtle px-3 py-2 text-sm text-destructive"
+          >
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            {error}
+          </p>
+        )}
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="btn-primary w-full px-4 py-3 text-sm font-medium disabled:opacity-60"
-        >
-          {isLoading ? "Signing in..." : "Sign in"}
-        </button>
+        <Button type="submit" size="lg" className="w-full" loading={isLoading}>
+          {isLoading ? "Signing in…" : "Sign in"}
+        </Button>
       </form>
     </div>
   );

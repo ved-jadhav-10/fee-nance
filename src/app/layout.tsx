@@ -1,44 +1,70 @@
-import type { Metadata } from "next";
-import { Cormorant_Garamond, DM_Sans, JetBrains_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+
 import { AuthSessionProvider } from "@/components/providers/session-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { TooltipProvider } from "@/components/ui/misc";
+import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
-const displayFont = Cormorant_Garamond({
+// Display face — used for the wordmark and page titles only, never body copy.
+// Loaded as a variable font so the whole 100–900 range costs one file.
+const displayFont = Fraunces({
   variable: "--font-display",
   subsets: ["latin"],
-  style: ["italic"],
-  weight: ["400", "500"],
+  display: "swap",
 });
 
-const bodyFont = DM_Sans({
+const bodyFont = Inter({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  display: "swap",
 });
 
 const monoFont = JetBrains_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
   weight: ["400", "500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Fee-Nance",
-  description: "Personal finance and group expense sharing with private authenticated workflows.",
+  title: {
+    default: "Fee-Nance",
+    template: "%s · Fee-Nance",
+  },
+  description:
+    "Track your income and expenses, split costs with groups, and settle up — in one place.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // No maximumScale / userScalable:false — pinch zoom stays available.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbfaff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0a14" },
+  ],
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en"
-      className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`}
     >
-      <body className="min-h-full flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
-        <AuthSessionProvider>{children}</AuthSessionProvider>
+      <body className="min-h-dvh bg-background text-foreground antialiased">
+        <ThemeProvider>
+          <AuthSessionProvider>
+            <TooltipProvider delayDuration={200}>
+              {children}
+              <Toaster />
+            </TooltipProvider>
+          </AuthSessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

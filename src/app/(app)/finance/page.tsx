@@ -1,17 +1,17 @@
+import type { Metadata } from "next";
+
+import { PageHeader } from "@/components/layout/page-header";
 import { FinanceManager } from "@/components/finance/finance-manager";
+
+export const metadata: Metadata = { title: "Transactions" };
 
 export default function FinancePage() {
   return (
-    <div className="flex flex-col gap-8">
-      <div className="space-y-1">
-        <p className="section-overline">Finance Command</p>
-        <h1 className="font-display text-[40px]">
-          Money <span className="display-highlight">workspace</span>
-        </h1>
-        <p className="text-[14px] text-[var(--color-text-secondary)]">
-          Create, edit, and track transaction decisions with clarity.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Transactions"
+        description="Record income and expenses, set budgets, and keep everything organised with categories."
+      />
       <FinanceManager />
     </div>
   );

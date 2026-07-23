@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
+
+import { SectionHeader } from "@/components/layout/page-header";
 import { GroupDetail } from "@/components/groups/group-detail";
 import { GroupDetailAnalytics } from "@/components/groups/group-detail-analytics";
-import Link from "next/link";
+
+export const metadata: Metadata = { title: "Group" };
 
 export default async function GroupDetailPage({
   params,
@@ -10,36 +16,25 @@ export default async function GroupDetailPage({
   const { groupId } = await params;
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="space-y-1">
+    <div className="space-y-8">
+      {/* Explicit back link — the browser's back button isn't the only way out. */}
+      <nav aria-label="Breadcrumb">
         <Link
           href="/groups"
-          className="btn-ghost inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] mb-1"
+          className="inline-flex items-center gap-1 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
-            <path fillRule="evenodd" d="M9.78 4.22a.75.75 0 0 1 0 1.06L7.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06L5.47 8.53a.75.75 0 0 1 0-1.06l3.25-3.25a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
-          </svg>
-          Back to Groups
+          <ChevronLeft className="size-4" aria-hidden="true" />
+          All groups
         </Link>
-        <p className="section-overline">Settlement View</p>
-        <h1 className="font-display text-[40px]">
-          Group <span className="display-highlight">detail</span>
-        </h1>
-        <p className="text-[14px] text-[var(--color-text-secondary)]">
-          Track splits, net balances, and settlement movement.
-        </p>
-      </div>
+      </nav>
+
       <GroupDetail groupId={groupId} />
-      <section className="flex flex-col gap-4">
-        <div className="space-y-1">
-          <p className="section-overline">Analytics</p>
-          <h2 className="font-display text-2xl">
-            Group <span className="display-highlight">analytics</span>
-          </h2>
-          <p className="text-[13px] text-[var(--color-text-secondary)]">
-            Spend distribution, settlement flows, and member timelines.
-          </p>
-        </div>
+
+      <section className="space-y-4">
+        <SectionHeader
+          title="Group analytics"
+          description="Spend distribution, settlement flow, and member activity over time."
+        />
         <GroupDetailAnalytics groupId={groupId} />
       </section>
     </div>

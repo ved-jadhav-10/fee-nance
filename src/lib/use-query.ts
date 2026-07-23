@@ -25,22 +25,13 @@ export function useQuery<T>(url: string) {
         }
 
         const result = (await response.json()) as T;
-
-        if (!isMounted) {
-          return;
-        }
-
+        if (!isMounted) return;
         setData(result);
       } catch {
-        if (!isMounted) {
-          return;
-        }
-
+        if (!isMounted) return;
         setError("Request failed");
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     }
 
@@ -52,4 +43,12 @@ export function useQuery<T>(url: string) {
   }, [refreshCount, url]);
 
   return { data, isLoading, error, reload };
+}
+
+/** Pulls the server's error message out of a failed response, with a fallback. */
+export async function readApiError(response: Response, fallback: string) {
+  const body = (await response.json().catch(() => null)) as {
+    error?: string;
+  } | null;
+  return body?.error ?? fallback;
 }

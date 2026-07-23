@@ -1,12 +1,60 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import * as React from "react";
+import { useTheme } from "next-themes";
+import {
+  AlertTriangle,
+  Check,
+  Monitor,
+  Moon,
+  Pencil,
+  Plus,
+  Sun,
+  Tags,
+  Trash2,
+} from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { initials } from "@/lib/format";
+import { readApiError } from "@/lib/use-query";
 import {
   dashboardRangeLabel,
   dashboardRangeValues,
   defaultUserPreferences,
   type DashboardDefaultRange,
 } from "@/lib/user-preferences";
+import { SectionHeader } from "@/components/layout/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Field, Label } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { EmptyState, Skeleton } from "@/components/ui/states";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { toast } from "@/components/ui/toaster";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Category {
   _id: string;
@@ -28,18 +76,190 @@ interface MeResponse {
   };
 }
 
-interface CategoriesResponse {
-  categories: Category[];
+/* ── Theme picker ──────────────────────────────────────────────────────── */
+
+const THEME_OPTIONS = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Monitor },
+] as const;
+
+function ThemePicker() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="theme-picker">Appearance</Label>
+      <div
+        id="theme-picker"
+        role="radiogroup"
+        aria-label="Appearance"
+        className="grid grid-cols-3 gap-2"
+      >
+        {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
+          const active = mounted && theme === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => setTheme(value)}
+              className={cn(
+                "flex h-20 flex-col items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-colors",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                active
+                  ? "border-primary bg-accent text-accent-foreground"
+                  : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              <Icon className="size-5" aria-hidden="true" />
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        &ldquo;System&rdquo; follows your device&rsquo;s light or dark setting.
+      </p>
+    </div>
+  );
 }
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0] ?? "")
-    .join("")
-    .toUpperCase();
+/* ── Profile edit dialog ───────────────────────────────────────────────── */
+
+function EditProfileDialog({
+  open,
+  onOpenChange,
+  name,
+  email,
+  range,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  name: string;
+  email: string;
+  range: DashboardDefaultRange;
+  onSaved: (next: { name: string; range: DashboardDefaultRange }) => void;
+}) {
+  const [draftName, setDraftName] = React.useState(name);
+  const [draftRange, setDraftRange] = React.useState(range);
+  const [error, setError] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!open) return;
+    setDraftName(name);
+    setDraftRange(range);
+    setError("");
+  }, [open, name, range]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (draftName.trim().length < 2) {
+      setError("Your name needs at least two characters.");
+      document.getElementById("profile-name")?.focus();
+      return;
+    }
+
+    setSaving(true);
+    const response = await fetch("/api/private/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: draftName.trim(),
+        preferences: { currency: "INR", dashboardDefaultRange: draftRange },
+      }),
+    });
+    setSaving(false);
+
+    if (!response.ok) {
+      setError(await readApiError(response, "Couldn't save your changes"));
+      return;
+    }
+
+    toast.success("Profile updated");
+    onSaved({ name: draftName.trim(), range: draftRange });
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit profile</DialogTitle>
+          <DialogDescription>
+            Update your display name and default dashboard range.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="contents">
+          <DialogBody className="space-y-4 py-4">
+            <Field
+              label="Full name"
+              htmlFor="profile-name"
+              required
+              error={error || undefined}
+            >
+              <Input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                maxLength={80}
+                autoComplete="name"
+              />
+            </Field>
+
+            {/* Read-only, not disabled — the value still matters to the user. */}
+            <Field
+              label="Email"
+              htmlFor="profile-email"
+              hint="Your email is tied to how you sign in and can't be changed here."
+            >
+              <Input value={email} readOnly tabIndex={-1} />
+            </Field>
+
+            <Field
+              label="Default dashboard range"
+              htmlFor="profile-range"
+              hint="The period your dashboard opens on."
+            >
+              <Select
+                value={draftRange}
+                onValueChange={(v) => setDraftRange(v as DashboardDefaultRange)}
+              >
+                <SelectTrigger id="profile-range">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {dashboardRangeValues.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {dashboardRangeLabel[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </DialogBody>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={saving}>
+              Save changes
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
+
+/* ── Main ──────────────────────────────────────────────────────────────── */
 
 export function ProfilePage({
   userName,
@@ -48,28 +268,22 @@ export function ProfilePage({
   userName: string;
   userEmail: string;
 }) {
-  // ── Profile state ──────────────────────────────────────────────────────
-  const [name, setName] = useState(userName);
-  const [email] = useState(userEmail);
-  const [dashboardDefaultRange, setDashboardDefaultRange] =
-    useState<DashboardDefaultRange>(defaultUserPreferences.dashboardDefaultRange);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [profileError, setProfileError] = useState("");
-  const [profileSuccess, setProfileSuccess] = useState("");
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [name, setName] = React.useState(userName);
+  const [range, setRange] = React.useState<DashboardDefaultRange>(
+    defaultUserPreferences.dashboardDefaultRange,
+  );
+  const [loadingProfile, setLoadingProfile] = React.useState(true);
+  const [editOpen, setEditOpen] = React.useState(false);
 
-  // ── Category state ─────────────────────────────────────────────────────
-  const [customCategories, setCustomCategories] = useState<Category[]>([]);
-  const [isLoadingCats, setIsLoadingCats] = useState(true);
-  const [addingCat, setAddingCat] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatType, setNewCatType] = useState<"income" | "expense">("expense");
-  const [catError, setCatError] = useState("");
-  const newCatInputRef = useRef<HTMLInputElement>(null);
+  const [categories, setCategories] = React.useState<Category[]>([]);
+  const [loadingCats, setLoadingCats] = React.useState(true);
+  const [newName, setNewName] = React.useState("");
+  const [newType, setNewType] = React.useState<"income" | "expense">("expense");
+  const [addingCat, setAddingCat] = React.useState(false);
 
-  // ── Load profile ───────────────────────────────────────────────────────
-  useEffect(() => {
+  const { confirm, confirmDialog } = useConfirm();
+
+  React.useEffect(() => {
     let mounted = true;
     async function load() {
       try {
@@ -78,300 +292,278 @@ export function ProfilePage({
         const data = (await res.json()) as MeResponse;
         if (!mounted) return;
         setName(data.user.name);
-        setDashboardDefaultRange(data.user.preferences.dashboardDefaultRange);
+        setRange(data.user.preferences.dashboardDefaultRange);
+      } catch {
+        // Fall back to the server-rendered session values already in state.
       } finally {
-        if (mounted) setIsLoadingProfile(false);
+        if (mounted) setLoadingProfile(false);
       }
     }
     void load();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // ── Load categories ────────────────────────────────────────────────────
-  useEffect(() => {
+  React.useEffect(() => {
     let mounted = true;
     async function load() {
       try {
         const res = await fetch("/api/private/categories", { cache: "no-store" });
         if (!res.ok) throw new Error();
-        const data = (await res.json()) as CategoriesResponse;
+        const data = (await res.json()) as { categories: Category[] };
         if (!mounted) return;
-        setCustomCategories(data.categories.filter((c) => !c.isSystem));
+        setCategories(data.categories.filter((c) => !c.isSystem));
+      } catch {
+        if (mounted) toast.error("Couldn't load your categories");
       } finally {
-        if (mounted) setIsLoadingCats(false);
+        if (mounted) setLoadingCats(false);
       }
     }
     void load();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    if (addingCat) newCatInputRef.current?.focus();
-  }, [addingCat]);
-
-  // ── Save profile ───────────────────────────────────────────────────────
-  const handleSaveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddCategory = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setProfileError("");
-    setProfileSuccess("");
-    setIsSaving(true);
-    const res = await fetch("/api/private/me", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, preferences: { currency: "INR", dashboardDefaultRange } }),
-    });
-    setIsSaving(false);
-    if (!res.ok) {
-      const data = (await res.json().catch(() => null)) as { error?: string } | null;
-      setProfileError(data?.error ?? "Failed to save");
-      return;
-    }
-    setProfileSuccess("Profile updated");
-    setIsEditing(false);
-    setTimeout(() => setProfileSuccess(""), 3000);
-  };
+    if (!newName.trim()) return;
 
-  // ── Delete category chip ───────────────────────────────────────────────
-  const handleDeleteCategory = async (id: string) => {
-    setCatError("");
-    const res = await fetch(`/api/private/categories/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      const data = (await res.json().catch(() => null)) as { error?: string } | null;
-      setCatError(data?.error ?? "Failed to delete");
-      return;
-    }
-    setCustomCategories((prev) => prev.filter((c) => c._id !== id));
-  };
-
-  // ── Add category ───────────────────────────────────────────────────────
-  const handleAddCategory = async () => {
-    if (!newCatName.trim()) return;
-    setCatError("");
+    setAddingCat(true);
     const res = await fetch("/api/private/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newCatName.trim(), type: newCatType }),
+      body: JSON.stringify({ name: newName.trim(), type: newType }),
     });
+    setAddingCat(false);
+
     if (!res.ok) {
-      const data = (await res.json().catch(() => null)) as { error?: string } | null;
-      setCatError(data?.error ?? "Failed to create");
+      toast.error(await readApiError(res, "Couldn't create that category"));
       return;
     }
+
     const data = (await res.json()) as { category: Category };
-    setCustomCategories((prev) => [...prev, data.category]);
-    setNewCatName("");
-    setAddingCat(false);
+    setCategories((prev) => [...prev, data.category]);
+    setNewName("");
+    toast.success(`"${data.category.name}" added`);
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────
+  const handleDeleteCategory = async (category: Category) => {
+    const ok = await confirm({
+      title: `Delete "${category.name}"?`,
+      description:
+        "Transactions using this category will become uncategorised. This can't be undone.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
+
+    const res = await fetch(`/api/private/categories/${category._id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      toast.error(await readApiError(res, "Couldn't delete that category"));
+      return;
+    }
+    setCategories((prev) => prev.filter((c) => c._id !== category._id));
+    toast.success("Category deleted");
+  };
+
   return (
-    <div className="flex flex-col gap-8">
-
-        {/* ── Hero ─────────────────────────────────────────────────────── */}
-        <section className="px-1 pt-2">
-          <p className="section-overline">The Sovereign</p>
-          <h1 className="mt-2 font-display text-[52px] leading-none text-[var(--color-text)] md:text-[72px]">
-            Control your <span className="display-highlight">identity.</span>
-          </h1>
-          <p className="mt-3 max-w-[480px] text-[15px] text-[var(--color-text-secondary)]">
-            Manage your personal details, custom categories, and account preferences from one place.
-          </p>
-        </section>
-
-        {/* ── Identity card ────────────────────────────────────────────── */}
-        <div className="panel p-6 md:p-8">
-          {isLoadingProfile ? (
-            <p className="text-sm text-[var(--color-muted)]">Loading…</p>
-          ) : isEditing ? (
-            <form onSubmit={handleSaveProfile} className="space-y-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="section-overline mb-1">Edit Profile</p>
-                  <p className="text-sm text-[var(--color-text-secondary)]">Update your display name and dashboard preference.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => { setIsEditing(false); setProfileError(""); }}
-                  className="btn-ghost px-3 py-1.5 text-xs"
-                >
-                  Cancel
-                </button>
+    <div className="space-y-8">
+      {/* ── Identity ────────────────────────────────────────────────── */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-5">
+          {loadingProfile ? (
+            <>
+              <Skeleton className="size-16 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-56" />
               </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">Full Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required minLength={2} maxLength={80}
-                    className="vault-input w-full"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    readOnly
-                    className="vault-input w-full opacity-50 cursor-not-allowed"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">Dashboard Range</label>
-                  <select
-                    value={dashboardDefaultRange}
-                    onChange={(e) => setDashboardDefaultRange(e.target.value as DashboardDefaultRange)}
-                    className="vault-input w-full"
-                  >
-                    {dashboardRangeValues.map((v) => (
-                      <option key={v} value={v}>{dashboardRangeLabel[v]}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-muted)]">Currency</label>
-                  <input value="INR ₹" readOnly className="vault-input w-full opacity-50 cursor-not-allowed" />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 pt-1">
-                <button type="submit" disabled={isSaving} className="btn-primary px-5 py-2 text-sm font-medium disabled:opacity-60">
-                  {isSaving ? "Saving…" : "Save Changes"}
-                </button>
-                {profileError && <p className="text-sm text-red-400">{profileError}</p>}
-                {profileSuccess && <p className="text-sm text-emerald-400">{profileSuccess}</p>}
-              </div>
-            </form>
-          ) : (
-            <div className="flex flex-wrap items-center gap-6">
-              {/* Avatar */}
-              <div className="vault-avatar flex-shrink-0">
-                <span className="font-display text-[22px]">{getInitials(name)}</span>
-              </div>
-
-              {/* Identity */}
-              <div className="flex-1">
-                <p className="text-[22px] font-semibold tracking-[-0.01em] text-[var(--color-text)]">{name}</p>
-                <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">{email}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="vault-badge">Verified Identity</span>
-                  <span className="vault-badge vault-badge--dim">Currency · INR</span>
-                  <span className="vault-badge vault-badge--dim">
-                    Range · {dashboardRangeLabel[dashboardDefaultRange]}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setIsEditing(true)}
-                className="btn-primary flex-shrink-0 px-5 py-2 text-sm font-medium"
-              >
-                Edit Profile
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* ── Category Manager ─────────────────────────────────────────── */}
-        <div className="panel p-6 md:p-8">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <div>
-              <p className="section-overline mb-1">Category Manager</p>
-              <p className="text-sm text-[var(--color-text-secondary)]">
-                Your custom income and expense tags.
-              </p>
-            </div>
-            <button
-              onClick={() => { setAddingCat(true); setCatError(""); }}
-              className="vault-chip-add flex items-center gap-1.5 text-sm"
-              disabled={addingCat}
-            >
-              <span className="text-base leading-none">+</span> New Tag
-            </button>
-          </div>
-
-          {isLoadingCats ? (
-            <p className="text-sm text-[var(--color-muted)]">Loading categories…</p>
+            </>
           ) : (
             <>
-              <div className="flex flex-wrap gap-2">
-                {customCategories.map((cat) => (
-                  <span key={cat._id} className={`vault-chip vault-chip--${cat.type}`}>
-                    {cat.name}
-                    <button
-                      onClick={() => void handleDeleteCategory(cat._id)}
-                      className="vault-chip-x ml-1.5"
-                      aria-label={`Remove ${cat.name}`}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-                {customCategories.length === 0 && !addingCat && (
-                  <p className="text-sm text-[var(--color-text-tertiary)]">No custom categories yet.</p>
-                )}
+              <span
+                aria-hidden="true"
+                className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary font-display text-xl text-primary-foreground"
+              >
+                {initials(name)}
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate text-lg font-semibold">{name}</h2>
+                <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                  {userEmail}
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  <Badge variant="success">
+                    <Check aria-hidden="true" />
+                    Signed in
+                  </Badge>
+                  <Badge variant="outline">Currency · INR ₹</Badge>
+                  <Badge variant="outline">
+                    Dashboard · {dashboardRangeLabel[range]}
+                  </Badge>
+                </div>
               </div>
 
-              {addingCat && (
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <input
-                    ref={newCatInputRef}
-                    type="text"
-                    value={newCatName}
-                    onChange={(e) => setNewCatName(e.target.value)}
-                    placeholder="Category name…"
-                    maxLength={50}
-                    onKeyDown={(e) => { if (e.key === "Enter") void handleAddCategory(); if (e.key === "Escape") setAddingCat(false); }}
-                    className="vault-input w-52"
-                  />
-                  <select
-                    value={newCatType}
-                    onChange={(e) => setNewCatType(e.target.value as "income" | "expense")}
-                    className="vault-input w-32"
-                  >
-                    <option value="expense">Expense</option>
-                    <option value="income">Income</option>
-                  </select>
-                  <button onClick={() => void handleAddCategory()} className="btn-primary px-4 py-2 text-sm">
-                    Add
-                  </button>
-                  <button onClick={() => { setAddingCat(false); setNewCatName(""); setCatError(""); }} className="btn-ghost px-3 py-2 text-sm">
-                    Cancel
-                  </button>
-                  {catError && <p className="w-full text-sm text-red-400">{catError}</p>}
-                </div>
-              )}
-
-              {!addingCat && catError && (
-                <p className="mt-2 text-sm text-red-400">{catError}</p>
-              )}
+              <Button onClick={() => setEditOpen(true)} className="shrink-0">
+                <Pencil className="size-4" />
+                Edit profile
+              </Button>
             </>
           )}
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* ── Danger Zone ──────────────────────────────────────────────── */}
-        <div className="vault-danger-zone p-6 md:p-8">
-          <p className="mb-1 text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--color-danger)]">
-            Danger Zone
-          </p>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="font-medium text-[var(--color-text)]">Delete Account</p>
-              <p className="mt-0.5 max-w-[440px] text-sm text-[var(--color-text-secondary)]">
-                Permanently remove your identity and erase all transaction metadata. This action is irreversible.
-              </p>
+      {/* ── Appearance ──────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>
+            Fee-Nance is designed for both light and dark. Pick whichever you read
+            more comfortably.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <ThemePicker />
+        </CardContent>
+      </Card>
+
+      {/* ── Categories ──────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Your categories</CardTitle>
+          <CardDescription>
+            Custom tags you&rsquo;ve added on top of the built-in ones.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4 pt-0">
+          {loadingCats ? (
+            <div className="flex flex-wrap gap-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-24 rounded-full" />
+              ))}
             </div>
-            <button
-              disabled
-              className="rounded-md border border-[var(--color-danger)] bg-[rgba(163,45,45,0.12)] px-5 py-2 text-sm font-medium text-[var(--color-danger)] opacity-60 cursor-not-allowed transition-all"
-            >
-              Delete Account
-            </button>
-          </div>
-        </div>
+          ) : categories.length ? (
+            <ul className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <li key={category._id}>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border py-1 pl-3 pr-1 text-sm",
+                      category.type === "income"
+                        ? "border-transparent bg-income-subtle text-income"
+                        : "border-transparent bg-expense-subtle text-expense",
+                    )}
+                  >
+                    {category.name}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCategory(category)}
+                      aria-label={`Delete ${category.name}`}
+                      className="flex size-7 items-center justify-center rounded-full transition-colors hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring dark:hover:bg-white/10"
+                    >
+                      <Trash2 className="size-3.5" aria-hidden="true" />
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState
+              icon={Tags}
+              title="No custom categories yet"
+              description="Add one below — they show up wherever you pick a category."
+            />
+          )}
 
+          <form
+            onSubmit={handleAddCategory}
+            className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-end"
+          >
+            <Field label="New category" htmlFor="new-category" className="flex-1">
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Transport, Freelance…"
+                maxLength={50}
+                autoComplete="off"
+              />
+            </Field>
+
+            <Field label="Type" htmlFor="new-category-type" className="sm:w-40">
+              <Select
+                value={newType}
+                onValueChange={(v) => setNewType(v as "income" | "expense")}
+              >
+                <SelectTrigger id="new-category-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="expense">Expense</SelectItem>
+                  <SelectItem value="income">Income</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Button
+              type="submit"
+              loading={addingCat}
+              disabled={!newName.trim()}
+              className="sm:shrink-0"
+            >
+              <Plus className="size-4" />
+              Add
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* ── Danger zone ─────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <SectionHeader title="Danger zone" />
+        <Card className="border-destructive/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="size-4" aria-hidden="true" />
+              Delete account
+            </CardTitle>
+            <CardDescription>
+              Permanently removes your account, transactions, budgets and group
+              memberships. This can&rsquo;t be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="justify-end">
+            {/* Disabled with an explanation, rather than a dead control. */}
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-xs text-muted-foreground">
+                Not available in this build.
+              </p>
+              <Button variant="destructive" disabled>
+                Delete account
+              </Button>
+            </div>
+          </CardFooter>
+        </Card>
+      </section>
+
+      <EditProfileDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        name={name}
+        email={userEmail}
+        range={range}
+        onSaved={({ name: nextName, range: nextRange }) => {
+          setName(nextName);
+          setRange(nextRange);
+        }}
+      />
+
+      {confirmDialog}
     </div>
   );
 }

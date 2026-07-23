@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { AlertTriangle, Home, RefreshCw } from "lucide-react";
+
 import { logger } from "@/lib/logger";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export default function AppError({
   error,
@@ -19,29 +23,40 @@ export default function AppError({
   }, [error]);
 
   return (
-    <main className="min-h-screen bg-[var(--color-bg)] px-5 py-12 text-[var(--color-text)] md:px-10">
-      <div className="mx-auto w-full max-w-2xl rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-8 text-center shadow-[0_0_24px_var(--color-accent-glow)]">
-        <p className="text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">Fee-Nance</p>
-        <h1 className="mt-3 text-3xl leading-tight">Something went wrong</h1>
-        <p className="mt-3 text-sm text-[var(--color-muted)]">
-          The page hit an unexpected issue. You can try again or go back to dashboard.
+    <main className="flex min-h-dvh items-center justify-center px-4 py-12">
+      <Card className="w-full max-w-md p-8 text-center">
+        <span
+          aria-hidden="true"
+          className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive-subtle text-destructive"
+        >
+          <AlertTriangle className="size-6" />
+        </span>
+
+        <h1 className="mt-5 font-display text-2xl">Something went wrong</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          This page hit an unexpected error. Retrying usually clears it — if it
+          keeps happening, head back to your dashboard.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={reset}
-            className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)]"
-          >
-            Try Again
-          </button>
-          <Link
-            href="/dashboard"
-            className="rounded-md border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-          >
-            Go to Dashboard
-          </Link>
+
+        {error.digest && (
+          <p className="mt-3 font-mono text-xs text-muted-foreground">
+            Reference: {error.digest}
+          </p>
+        )}
+
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <Button onClick={reset}>
+            <RefreshCw className="size-4" />
+            Try again
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard">
+              <Home className="size-4" />
+              Go to dashboard
+            </Link>
+          </Button>
         </div>
-      </div>
+      </Card>
     </main>
   );
 }
